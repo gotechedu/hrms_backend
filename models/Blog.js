@@ -68,12 +68,20 @@ const blogSchema = new mongoose.Schema(
   }
 );
 
-blogSchema.pre('save', function () {
+blogSchema.pre('save', async function () {
   if (!this.slug && this.title) {
-    this.slug = this.title
+    let baseSlug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
+    
+    // Check if baseSlug exists
+    const existing = await mongoose.models.Blog.findOne({ slug: baseSlug, _id: { $ne: this._id } });
+    if (existing) {
+      this.slug = `${baseSlug}-${Date.now().toString(36)}`;
+    } else {
+      this.slug = baseSlug;
+    }
   }
 });
 

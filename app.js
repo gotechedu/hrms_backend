@@ -11,11 +11,47 @@ connectDB();
 
 const app = express();
 
+// Allowed CORS Origins Whitelist
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:5172',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5172',
+  'https://gotechedu.vercel.app',
+  'https://hrmsgotechedu.vercel.app',
+];
+
 // Core Middleware
-app.use(cors({
-  origin: '*', // Allow all origins for dev/API access, can be restricted in prod
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Normalize origin removing trailing slash
+      const cleanOrigin = origin.replace(/\/+$/, '');
+
+      // Check if origin matches whitelist or any .vercel.app domain
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        cleanOrigin.includes('localhost') ||
+        cleanOrigin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(null, true); // Fallback allow for dev/preview
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
