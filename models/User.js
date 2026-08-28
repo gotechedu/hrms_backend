@@ -29,12 +29,9 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: {
-        values: ROLES,
-        message: '{VALUE} is not a valid role. Allowed roles: ' + ROLES.join(', '),
-      },
       default: 'employee',
       lowercase: true,
+      trim: true,
     },
     employeeProfile: {
       type: mongoose.Schema.Types.ObjectId,

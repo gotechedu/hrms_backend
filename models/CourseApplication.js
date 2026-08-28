@@ -32,6 +32,25 @@ const courseApplicationSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    qualification: {
+      type: String,
+      trim: true,
+      default: 'B.Tech / MCA / BCA',
+    },
+    batch: {
+      type: String,
+      trim: true,
+      default: 'Current Cohort 2026',
+    },
+    feesStatus: {
+      type: String,
+      enum: ['Paid', 'Partial', 'Unpaid', 'Scholarship', 'Waived'],
+      default: 'Unpaid',
+    },
+    feesAmount: {
+      type: Number,
+      default: 0,
+    },
     experienceLevel: {
       type: String,
       default: 'Student / Fresher',
@@ -49,9 +68,27 @@ const courseApplicationSchema = new mongoose.Schema(
       enum: ['Pending', 'Screening', 'Approved', 'Enrolled', 'Rejected', 'Completed'],
       default: 'Pending',
     },
+    progressPercentage: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    certificateIssued: {
+      type: Boolean,
+      default: false,
+    },
     notes: {
       type: String,
       default: '',
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

@@ -4,7 +4,7 @@ const { Job } = require('../models/Job');
 const getAllJobs = async (req, res) => {
   try {
     const { department, status, type, search } = req.query;
-    const query = {};
+    const query = { isDeleted: { $ne: true } };
 
     if (department && department !== 'All') {
       query.department = department;
@@ -160,7 +160,7 @@ const updateJob = async (req, res) => {
 const deleteJob = async (req, res) => {
   try {
     const { id } = req.params;
-    const job = await Job.findByIdAndDelete(id);
+    const job = await Job.findById(id);
     if (!job) {
       return res.status(404).json({
         success: false,
@@ -168,9 +168,13 @@ const deleteJob = async (req, res) => {
       });
     }
 
+    job.isDeleted = true;
+    job.deletedAt = new Date();
+    await job.save();
+
     return res.status(200).json({
       success: true,
-      message: `Job opening '${job.title}' deleted successfully`,
+      message: `Job opening '${job.title}' moved to Recycle Bin`,
     });
   } catch (error) {
     console.error('Delete Job Error:', error);

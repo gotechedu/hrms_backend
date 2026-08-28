@@ -4,7 +4,7 @@ const { Course } = require('../models/Course');
 const getAllCourses = async (req, res) => {
   try {
     const { category, search, status } = req.query;
-    const query = {};
+    const query = { isDeleted: { $ne: true } };
     if (category && category !== 'All') {
       query.category = category;
     }
@@ -152,7 +152,7 @@ const updateCourse = async (req, res) => {
 const deleteCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const course = await Course.findByIdAndDelete(id);
+    const course = await Course.findById(id);
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -160,9 +160,13 @@ const deleteCourse = async (req, res) => {
       });
     }
 
+    course.isDeleted = true;
+    course.deletedAt = new Date();
+    await course.save();
+
     return res.status(200).json({
       success: true,
-      message: `Course '${course.title}' deleted successfully`,
+      message: `Course '${course.title}' moved to Recycle Bin`,
     });
   } catch (error) {
     console.error('Delete Course Error:', error);

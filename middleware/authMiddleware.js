@@ -88,7 +88,51 @@ const authorize = (...roles) => {
   };
 };
 
+/**
+ * Dynamic Permission Check Middleware
+ * Verifies if the authenticated user's role has the required permission assigned
+ * @param {String} permissionSlug - The permission key to check (e.g. 'employees', 'payroll')
+ */
+const checkPermission = (permissionSlug) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required prior to permission check.',
+      });
+    }
+
+    const userRole = (req.user.role || '').toLowerCase();
+
+    // Superadmin has universal unrestricted access across all permissions
+    if (userRole === 'superadmin') {
+      return next();
+    }
+
+    try {
+      const { Role } = require('../models/Role');
+      const roleDoc = await Role.findOne({ slug: userRole });
+
+      if (!roleDoc || !roleDoc.permissions.includes(permissionSlug)) {
+        return res.status(403).json({
+          success: false,
+          message: `Forbidden: Your role '${req.user.role}' lacks permission '${permissionSlug}' for this operation.`,
+        });
+      }
+
+      next();
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Error verifying permissions',
+        error: error.message,
+      });
+    }
+  };
+};
+
 module.exports = {
   protect,
   authorize,
+  checkPermission,
 };

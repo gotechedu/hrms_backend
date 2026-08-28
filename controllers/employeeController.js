@@ -33,7 +33,7 @@ const getAllEmployees = async (req, res) => {
       limit = 50,
     } = req.query;
 
-    const query = {};
+    const query = { isDeleted: { $ne: true } };
 
     // Filter by department
     if (department && department !== 'All') {
@@ -185,12 +185,14 @@ const createEmployee = async (req, res) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const normalizedRole = role.toLowerCase();
+    const normalizedRole = (role || 'employee').toLowerCase().trim();
 
-    if (!ROLES.includes(normalizedRole)) {
+    const { Role } = require('../models/Role');
+    const roleExists = await Role.findOne({ slug: normalizedRole });
+    if (!roleExists && !ROLES.includes(normalizedRole)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid role '${role}'. Allowed: ${ROLES.join(', ')}`,
+        message: `Invalid role '${role}'. Please select a valid role.`,
       });
     }
 
@@ -297,11 +299,13 @@ const updateEmployee = async (req, res) => {
 
     // Role updates validation
     if (updateData.role) {
-      const normalizedRole = updateData.role.toLowerCase();
-      if (!ROLES.includes(normalizedRole)) {
+      const normalizedRole = updateData.role.toLowerCase().trim();
+      const { Role } = require('../models/Role');
+      const roleExists = await Role.findOne({ slug: normalizedRole });
+      if (!roleExists && !ROLES.includes(normalizedRole)) {
         return res.status(400).json({
           success: false,
-          message: `Invalid role '${updateData.role}'. Allowed: ${ROLES.join(', ')}`,
+          message: `Invalid role '${updateData.role}'.`,
         });
       }
       updateData.role = normalizedRole;
@@ -383,24 +387,19 @@ const deleteEmployee = async (req, res) => {
       });
     }
 
-    // Deactivate/Remove linked User account
-    if (employee.user) {
-      await User.findByIdAndDelete(employee.user);
-    } else {
-      await User.findOneAndDelete({ email: employee.email });
-    }
-
-    await Employee.findByIdAndDelete(employee._id);
+    employee.isDeleted = true;
+    employee.deletedAt = new Date();
+    await employee.save();
 
     return res.status(200).json({
       success: true,
-      message: `Employee ${employee.name} (${employee.employeeId}) and associated login account removed successfully`,
+      message: `Employee ${employee.name} (${employee.employeeId}) moved to Recycle Bin`,
     });
   } catch (error) {
     console.error('Delete Employee Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error deleting employee record',
+      message: 'Server error moving employee to recycle bin',
       error: error.message,
     });
   }

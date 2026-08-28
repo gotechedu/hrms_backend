@@ -39,12 +39,9 @@ const employeeSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: {
-        values: ROLES,
-        message: '{VALUE} is not a valid role. Allowed roles: ' + ROLES.join(', '),
-      },
       default: 'employee',
       lowercase: true,
+      trim: true,
     },
     designation: {
       type: String,
@@ -116,6 +113,14 @@ const employeeSchema = new mongoose.Schema(
       state: { type: String, default: '' },
       postalCode: { type: String, default: '' },
       country: { type: String, default: 'India' },
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

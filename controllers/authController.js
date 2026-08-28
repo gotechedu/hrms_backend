@@ -86,6 +86,21 @@ const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
+    // Fetch assigned permissions for user's role
+    const { Role } = require('../models/Role');
+    const { Permission } = require('../models/Permission');
+    let permissions = [];
+    const roleSlug = (user.role || '').toLowerCase().trim();
+    if (roleSlug === 'superadmin') {
+      const allPerms = await Permission.find();
+      permissions = allPerms.map((p) => p.permission || p.slug);
+    } else {
+      const roleDoc = await Role.findOne({
+        $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, 'i') }],
+      });
+      permissions = roleDoc ? roleDoc.permissions : [];
+    }
+
     // Generate JWT token
     const token = generateToken({
       id: user._id,
@@ -104,6 +119,7 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        permissions,
         status: user.status,
         lastLogin: user.lastLogin,
         employeeProfile: user.employeeProfile,
@@ -324,9 +340,30 @@ const getMe = async (req, res) => {
       ],
     });
 
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { Role } = require('../models/Role');
+    const { Permission } = require('../models/Permission');
+    let permissions = [];
+    const roleSlug = (user.role || '').toLowerCase().trim();
+    if (roleSlug === 'superadmin') {
+      const allPerms = await Permission.find();
+      permissions = allPerms.map((p) => p.permission || p.slug);
+    } else {
+      const roleDoc = await Role.findOne({
+        $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, 'i') }],
+      });
+      permissions = roleDoc ? roleDoc.permissions : [];
+    }
+
+    const userObj = user.toObject();
+    userObj.permissions = permissions;
+
     return res.status(200).json({
       success: true,
-      user,
+      user: userObj,
     });
   } catch (error) {
     console.error('GetMe Error:', error);

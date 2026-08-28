@@ -4,7 +4,7 @@ const { Blog } = require('../models/Blog');
 const getAllBlogs = async (req, res) => {
   try {
     const { category, search, status } = req.query;
-    const query = {};
+    const query = { isDeleted: { $ne: true } };
 
     if (category && category !== 'All') {
       query.category = category;
@@ -158,7 +158,7 @@ const updateBlog = async (req, res) => {
 const deleteBlog = async (req, res) => {
   try {
     const { id } = req.params;
-    const blog = await Blog.findByIdAndDelete(id);
+    const blog = await Blog.findById(id);
     if (!blog) {
       return res.status(404).json({
         success: false,
@@ -166,9 +166,13 @@ const deleteBlog = async (req, res) => {
       });
     }
 
+    blog.isDeleted = true;
+    blog.deletedAt = new Date();
+    await blog.save();
+
     return res.status(200).json({
       success: true,
-      message: `Blog article '${blog.title}' deleted successfully`,
+      message: `Blog article '${blog.title}' moved to Recycle Bin`,
     });
   } catch (error) {
     console.error('Delete Blog Error:', error);

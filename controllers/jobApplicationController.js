@@ -1,7 +1,7 @@
 const { JobApplication } = require('../models/JobApplication');
 const { Job } = require('../models/Job');
 
-// POST /api/job-applications (Public - submitted by candidate on official website)
+// POST /api/job-applications (Public or HRMS Add Candidate)
 const submitJobApplication = async (req, res) => {
   try {
     const {
@@ -18,6 +18,9 @@ const submitJobApplication = async (req, res) => {
       resumeUrl,
       portfolioUrl,
       coverLetter,
+      stage,
+      rating,
+      notes,
     } = req.body;
 
     if (!name || !email || !phone || !jobTitle) {
@@ -41,7 +44,9 @@ const submitJobApplication = async (req, res) => {
       resumeUrl: resumeUrl || '',
       portfolioUrl: portfolioUrl || '',
       coverLetter: coverLetter || '',
-      stage: 'Applied',
+      stage: stage || 'Applied',
+      rating: rating !== undefined ? Number(rating) : 4,
+      notes: notes || '',
     });
 
     await application.save();
@@ -53,7 +58,7 @@ const submitJobApplication = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Your job application has been successfully submitted! Our talent acquisition team will review your profile.',
+      message: 'Job candidate registered successfully!',
       application,
     });
   } catch (error) {
@@ -70,7 +75,7 @@ const submitJobApplication = async (req, res) => {
 const getAllJobApplications = async (req, res) => {
   try {
     const { stage, department, search } = req.query;
-    const query = {};
+    const query = { isDeleted: { $ne: true } };
 
     if (stage && stage !== 'All') {
       query.stage = stage;
@@ -85,6 +90,7 @@ const getAllJobApplications = async (req, res) => {
         { email: { $regex: q, $options: 'i' } },
         { jobTitle: { $regex: q, $options: 'i' } },
         { phone: { $regex: q, $options: 'i' } },
+        { currentCompany: { $regex: q, $options: 'i' } },
       ];
     }
 
@@ -109,25 +115,22 @@ const getAllJobApplications = async (req, res) => {
 const updateJobApplicationStage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { stage, rating, notes } = req.body;
+    const updates = req.body;
 
     const application = await JobApplication.findById(id);
-    if (!application) {
+    if (!application || application.isDeleted) {
       return res.status(404).json({
         success: false,
         message: 'Job application not found',
       });
     }
 
-    if (stage) application.stage = stage;
-    if (rating !== undefined) application.rating = rating;
-    if (notes !== undefined) application.notes = notes;
-
+    Object.assign(application, updates);
     await application.save();
 
     return res.status(200).json({
       success: true,
-      message: `Applicant status updated to '${application.stage}'`,
+      message: `Applicant profile updated successfully`,
       application,
     });
   } catch (error) {
@@ -140,11 +143,11 @@ const updateJobApplicationStage = async (req, res) => {
   }
 };
 
-// DELETE /api/job-applications/:id
+// DELETE /api/job-applications/:id (Soft delete to Recycle Bin)
 const deleteJobApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    const application = await JobApplication.findByIdAndDelete(id);
+    const application = await JobApplication.findById(id);
     if (!application) {
       return res.status(404).json({
         success: false,
@@ -152,9 +155,13 @@ const deleteJobApplication = async (req, res) => {
       });
     }
 
+    application.isDeleted = true;
+    application.deletedAt = new Date();
+    await application.save();
+
     return res.status(200).json({
       success: true,
-      message: 'Candidate application removed from pipeline',
+      message: 'Candidate application moved to Recycle Bin',
     });
   } catch (error) {
     console.error('Delete Job Application Error:', error);
