@@ -132,6 +132,42 @@ const submitCourseApplication = async (req, res) => {
   }
 };
 
+// GET /api/course-applications/:id
+const getCourseApplicationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid application ID format',
+      });
+    }
+
+    const application = await CourseApplication.findById(id)
+      .populate('user', 'name email role status')
+      .populate('course', 'title category duration price');
+
+    if (!application || application.isDeleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course candidate application not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      application,
+    });
+  } catch (error) {
+    console.error('Get Course Application By ID Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error retrieving course candidate application',
+      error: error.message,
+    });
+  }
+};
+
 // GET /api/course-applications (HRMS Course Candidates Directory)
 const getAllCourseApplications = async (req, res) => {
   try {
@@ -149,7 +185,7 @@ const getAllCourseApplications = async (req, res) => {
     }
     if (search && search.trim() !== '') {
       const q = search.trim();
-      query.$or = [
+      const orConditions = [
         { studentName: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } },
         { courseTitle: { $regex: q, $options: 'i' } },
@@ -157,6 +193,10 @@ const getAllCourseApplications = async (req, res) => {
         { collegeOrCompany: { $regex: q, $options: 'i' } },
         { batch: { $regex: q, $options: 'i' } },
       ];
+      if (mongoose.Types.ObjectId.isValid(q)) {
+        orConditions.push({ _id: q });
+      }
+      query.$or = orConditions;
     }
 
     const applications = await CourseApplication.find(query)
@@ -243,6 +283,7 @@ const deleteCourseApplication = async (req, res) => {
 
 module.exports = {
   submitCourseApplication,
+  getCourseApplicationById,
   getAllCourseApplications,
   updateCourseApplicationStatus,
   deleteCourseApplication,

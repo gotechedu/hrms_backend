@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   submitJobApplication,
+  getJobApplicationById,
   getAllJobApplications,
   updateJobApplicationStage,
   deleteJobApplication,
@@ -13,6 +14,7 @@ router.post('/', submitJobApplication);
 
 // Protected routes - HRMS staff reviews candidates
 router.get('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getAllJobApplications);
+router.get('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getJobApplicationById);
 router.put('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), updateJobApplicationStage);
 router.delete('/:id', protect, authorize('superadmin', 'admin', 'hr'), deleteJobApplication);
 

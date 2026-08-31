@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   submitCourseApplication,
+  getCourseApplicationById,
   getAllCourseApplications,
   updateCourseApplicationStatus,
   deleteCourseApplication,
@@ -20,6 +21,7 @@ router.post('/verify-payment', verifyPaymentSignature);
 
 // Protected routes - HRMS staff reviews applications
 router.get('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getAllCourseApplications);
+router.get('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getCourseApplicationById);
 router.put('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), updateCourseApplicationStatus);
 router.delete('/:id', protect, authorize('superadmin', 'admin', 'hr'), deleteCourseApplication);
 

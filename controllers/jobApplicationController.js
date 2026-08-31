@@ -71,6 +71,41 @@ const submitJobApplication = async (req, res) => {
   }
 };
 
+const mongoose = require('mongoose');
+
+// GET /api/job-applications/:id
+const getJobApplicationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid application ID format',
+      });
+    }
+
+    const application = await JobApplication.findById(id);
+    if (!application || application.isDeleted) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job candidate application not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      application,
+    });
+  } catch (error) {
+    console.error('Get Job Application By ID Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error retrieving candidate application',
+      error: error.message,
+    });
+  }
+};
+
 // GET /api/job-applications (Protected - viewed in HRMS)
 const getAllJobApplications = async (req, res) => {
   try {
@@ -85,13 +120,17 @@ const getAllJobApplications = async (req, res) => {
     }
     if (search && search.trim() !== '') {
       const q = search.trim();
-      query.$or = [
+      const orConditions = [
         { name: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } },
         { jobTitle: { $regex: q, $options: 'i' } },
         { phone: { $regex: q, $options: 'i' } },
         { currentCompany: { $regex: q, $options: 'i' } },
       ];
+      if (mongoose.Types.ObjectId.isValid(q)) {
+        orConditions.push({ _id: q });
+      }
+      query.$or = orConditions;
     }
 
     const applications = await JobApplication.find(query).sort({ createdAt: -1 });
@@ -175,6 +214,7 @@ const deleteJobApplication = async (req, res) => {
 
 module.exports = {
   submitJobApplication,
+  getJobApplicationById,
   getAllJobApplications,
   updateJobApplicationStage,
   deleteJobApplication,
