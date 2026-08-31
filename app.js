@@ -78,6 +78,9 @@ app.get("/", (req, res) => {
       jobs: "/api/jobs",
       blogs: "/api/blogs",
       payroll: "/api/payroll",
+      holidays: "/api/holidays",
+      projects: "/api/projects",
+      tasks: "/api/tasks",
       settings: "/api/settings",
       recycleBin: "/api/recycle-bin",
     },
@@ -97,17 +100,29 @@ app.use("/api/auth", require("./routes/authRoute"));
 app.use("/api/employees", require("./routes/employeeRoute"));
 app.use("/api/courses", require("./routes/courseRoute"));
 app.use("/api/course-applications", require("./routes/courseApplicationRoute"));
+app.use("/api/payments", require("./routes/paymentRoute"));
+app.use("/api/offers", require("./routes/offerRoute"));
 app.use("/api/jobs", require("./routes/jobRoute"));
 app.use("/api/job-applications", require("./routes/jobApplicationRoute"));
 app.use("/api/blogs", require("./routes/blogRoute"));
 app.use("/api/payroll", require("./routes/payrollRoute"));
 app.use("/api/attendance", require("./routes/attendanceRoute"));
 app.use("/api/timesheets", require("./routes/timesheetRoute"));
+app.use("/api/holidays", require("./routes/holidayRoute"));
+app.use("/api/projects", require("./routes/projectRoute"));
+app.use("/api/tasks", require("./routes/taskRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/recycle-bin", require("./routes/recycleBinRoute"));
 app.use("/api/roles", require("./routes/roleRoute"));
 app.use("/api/permissions", require("./routes/permissionRoute"));
 app.use("/api", require("./routes/rolePermissionRoute"));
+
+// Standalone Direct Payment Endpoints
+const { createPaymentOrder, verifyPaymentSignature } = require("./controllers/paymentController");
+app.post("/api/payments/create-order", createPaymentOrder);
+app.post("/api/payments/verify-payment", verifyPaymentSignature);
+app.post("/api/course-applications/create-order", createPaymentOrder);
+app.post("/api/course-applications/verify-payment", verifyPaymentSignature);
 
 // 404 Not Found Middleware
 app.use((req, res, next) => {

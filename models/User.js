@@ -33,6 +33,42 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    phone: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    collegeOrCompany: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    qualification: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    enrolledCourses: [
+      {
+        course: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Course',
+        },
+        application: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'CourseApplication',
+        },
+        courseTitle: String,
+        enrolledAt: {
+          type: Date,
+          default: Date.now,
+        },
+        status: {
+          type: String,
+          default: 'Active',
+        },
+      },
+    ],
     employeeProfile: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee',

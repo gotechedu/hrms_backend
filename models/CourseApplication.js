@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 
 const courseApplicationSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     course: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
@@ -10,6 +15,10 @@ const courseApplicationSchema = new mongoose.Schema(
     courseTitle: {
       type: String,
       required: [true, 'Course title is required'],
+    },
+    courseCategory: {
+      type: String,
+      default: 'Development',
     },
     studentName: {
       type: String,
@@ -50,6 +59,14 @@ const courseApplicationSchema = new mongoose.Schema(
     feesAmount: {
       type: Number,
       default: 0,
+    },
+    paymentDetails: {
+      razorpayOrderId: { type: String, default: '' },
+      razorpayPaymentId: { type: String, default: '' },
+      razorpaySignature: { type: String, default: '' },
+      paymentStatus: { type: String, enum: ['Pending', 'Success', 'Failed'], default: 'Pending' },
+      paymentMethod: { type: String, default: 'Razorpay Online' },
+      paidAt: { type: Date, default: null },
     },
     experienceLevel: {
       type: String,

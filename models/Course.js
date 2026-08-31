@@ -70,6 +70,36 @@ const courseSchema = new mongoose.Schema(
       type: String,
       default: 'Free & Industry Sponsored',
     },
+    originalPrice: {
+      type: Number,
+      default: 49999,
+    },
+    discountedPrice: {
+      type: Number,
+      default: 24999,
+    },
+    offers: [
+      {
+        code: String,
+        title: String,
+        discountPercent: Number,
+        description: String,
+        badge: String,
+      },
+    ],
+    modulesList: [
+      {
+        title: String,
+        duration: String,
+        topics: [String],
+      },
+    ],
+    instructor: {
+      name: { type: String, default: 'Dr. Vikram Sharma' },
+      role: { type: String, default: 'Lead Full-Stack Architect' },
+      organization: { type: String, default: 'GoTechEdu Labs' },
+      avatar: { type: String, default: '' },
+    },
     status: {
       type: String,
       enum: ['Active', 'Draft', 'Archived'],

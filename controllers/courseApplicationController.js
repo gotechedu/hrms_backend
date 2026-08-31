@@ -1,5 +1,6 @@
 const { CourseApplication } = require('../models/CourseApplication');
 const { Course } = require('../models/Course');
+const { User } = require('../models/User');
 
 // POST /api/course-applications (Submit or Add Student Candidate)
 const submitCourseApplication = async (req, res) => {
@@ -30,11 +31,33 @@ const submitCourseApplication = async (req, res) => {
       });
     }
 
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Auto-link or Create User account
+    const rawPassword = req.body.password || `Student@${Math.floor(1000 + Math.random() * 9000)}`;
+    let userDoc = await User.findOne({ email: cleanEmail });
+    if (!userDoc) {
+      userDoc = new User({
+        name: studentName,
+        email: cleanEmail,
+        password: rawPassword,
+        role: 'employee',
+        phone: phone || '',
+        collegeOrCompany: collegeOrCompany || '',
+        qualification: qualification || '',
+      });
+      await userDoc.save();
+    } else if (req.body.password) {
+      userDoc.password = req.body.password;
+      await userDoc.save();
+    }
+
     const application = new CourseApplication({
+      user: userDoc._id,
       course: courseId || null,
       courseTitle,
       studentName,
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       phone,
       collegeOrCompany: collegeOrCompany || '',
       qualification: qualification || 'B.Tech / MCA / Degree',
@@ -49,17 +72,55 @@ const submitCourseApplication = async (req, res) => {
       notes: notes || '',
     });
 
+    if (req.body.paymentDetails) {
+      application.paymentDetails = req.body.paymentDetails;
+      if (req.body.paymentDetails.paymentStatus === 'Paid') {
+        application.feesStatus = 'Paid';
+        application.status = 'Enrolled';
+      }
+    }
+
     await application.save();
+
+    // Update User enrolledCourses
+    userDoc.enrolledCourses.push({
+      course: courseId || null,
+      application: application._id,
+      courseTitle,
+      enrolledAt: new Date(),
+      status: application.feesStatus === 'Paid' ? 'Active' : 'Pending',
+    });
+    await userDoc.save();
 
     // Increment enrolled/applied count in Course if linked
     if (courseId) {
       await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: 1 } });
     }
 
+    // Try sending Nodemailer invoice email if feesStatus is Paid
+    if (application.feesStatus === 'Paid') {
+      try {
+        const { sendPaymentInvoiceEmail } = require('../utils/emailService');
+        await sendPaymentInvoiceEmail({
+          studentName: application.studentName,
+          email: application.email,
+          phone: application.phone,
+          courseTitle: application.courseTitle,
+          paymentId: application.paymentDetails?.razorpayPaymentId || `pay_app_${Date.now()}`,
+          orderId: application.paymentDetails?.razorpayOrderId || `order_app_${Date.now()}`,
+          amount: application.feesAmount || req.body.amount || 21999,
+          paidAt: new Date(),
+        });
+      } catch (emailErr) {
+        console.warn('Invoice email notice:', emailErr.message);
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: 'Student candidate enrolled successfully!',
       application,
+      portalUrl: 'https://hrmsgotechedu.vercel.app/',
     });
   } catch (error) {
     console.error('Submit Course Application Error:', error);
@@ -98,7 +159,10 @@ const getAllCourseApplications = async (req, res) => {
       ];
     }
 
-    const applications = await CourseApplication.find(query).sort({ createdAt: -1 });
+    const applications = await CourseApplication.find(query)
+      .populate('user', 'name email role status')
+      .populate('course', 'title category duration price')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
