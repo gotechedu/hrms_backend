@@ -5,6 +5,8 @@ const { Course } = require('../models/Course');
 const { CourseApplication } = require('../models/CourseApplication');
 const { Payroll } = require('../models/Payroll');
 const { Blog } = require('../models/Blog');
+const { ContactInquiry } = require('../models/ContactInquiry');
+const { Discussion } = require('../models/Discussion');
 
 const MODEL_MAP = {
   employee: { model: Employee, titleField: 'name', subField: 'email', typeLabel: 'Employee Profile' },
@@ -14,6 +16,8 @@ const MODEL_MAP = {
   courseApplication: { model: CourseApplication, titleField: 'studentName', subField: 'courseTitle', typeLabel: 'Course Candidate' },
   payroll: { model: Payroll, titleField: 'recipientName', subField: 'month', typeLabel: 'Payroll Record' },
   blog: { model: Blog, titleField: 'title', subField: 'category', typeLabel: 'Bulletin / Blog' },
+  contact: { model: ContactInquiry, titleField: 'fullName', subField: 'service', typeLabel: 'Contact Consultation Inquiry' },
+  discussion: { model: Discussion, titleField: 'title', subField: 'category', typeLabel: 'Discussion Topic' },
 };
 
 /**

@@ -1,65 +1,6 @@
 const { Project } = require('../models/Project');
 const { Employee } = require('../models/Employee');
 
-const defaultProjects = [
-  {
-    projectId: 'PRJ-101',
-    name: 'Enterprise School ERP Platform',
-    client: 'Delhi Public School Network',
-    category: 'Full-Stack Web & Mobile',
-    leadName: 'Priya Sundaram',
-    budget: '₹45,00,000',
-    startDate: '2025-01-10',
-    deadline: '2025-08-30',
-    status: 'In Progress',
-    progress: 65,
-    tags: ['React', 'Node.js', 'PostgreSQL', 'TailwindCSS'],
-    description: 'Comprehensive K-12 management system with attendance, fee processing, and mobile apps.',
-  },
-  {
-    projectId: 'PRJ-102',
-    name: 'Autonomous Legal Contract Analyzer',
-    client: 'Lexis Nexis Global Solutions',
-    category: 'GenAI & Multi-Agent',
-    leadName: 'Rohan Mehra',
-    budget: '₹62,00,000',
-    startDate: '2025-02-01',
-    deadline: '2025-10-15',
-    status: 'Review & QA',
-    progress: 88,
-    tags: ['Python', 'Qdrant', 'LangChain', 'OpenAI'],
-    description: 'Multi-agent legal pipeline for automatic risk discovery and compliance auditing.',
-  },
-  {
-    projectId: 'PRJ-103',
-    name: 'Multi-Cloud Kubernetes Automation',
-    client: 'FinTech Secure Payments Pvt Ltd',
-    category: 'Cloud DevOps',
-    leadName: 'Ananya Verma',
-    budget: '₹28,00,000',
-    startDate: '2025-03-05',
-    deadline: '2025-07-20',
-    status: 'In Progress',
-    progress: 40,
-    tags: ['AWS EKS', 'Terraform', 'ArgoCD', 'Prometheus'],
-    description: 'Automated CI/CD infrastructure with zero-downtime Canary deployment.',
-  },
-  {
-    projectId: 'PRJ-104',
-    name: 'FinTech SOC 2 Compliance Shield',
-    client: 'PayEdge India Capital',
-    category: 'Cybersecurity',
-    leadName: 'Arjun Dasgupta',
-    budget: '₹35,00,000',
-    startDate: '2024-11-01',
-    deadline: '2025-04-10',
-    status: 'Completed',
-    progress: 100,
-    tags: ['WAF', 'SIEM', 'ISO 27001', 'Penetration Testing'],
-    description: 'Security auditing, threat mitigation, and automated compliance reporting.',
-  },
-];
-
 /**
  * @desc    Get all projects with filtering and search
  * @route   GET /api/projects
@@ -84,16 +25,7 @@ const getProjects = async (req, res) => {
       ];
     }
 
-    let projects = await Project.find(query).populate('lead', 'firstName lastName designation department email employeeId').sort({ createdAt: -1 });
-
-    // Seed defaults if clean DB
-    if (projects.length === 0 && (!status || status === 'All') && (!category || category === 'All') && !search) {
-      const count = await Project.countDocuments();
-      if (count === 0) {
-        await Project.insertMany(defaultProjects);
-        projects = await Project.find().populate('lead', 'firstName lastName designation department email employeeId').sort({ createdAt: -1 });
-      }
-    }
+    const projects = await Project.find(query).populate('lead', 'firstName lastName designation department email employeeId').sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,

@@ -33,7 +33,7 @@ const jobApplicationSchema = new mongoose.Schema(
     },
     experience: {
       type: String,
-      default: '2 Years',
+      default: '',
     },
     currentCompany: {
       type: String,
@@ -45,7 +45,7 @@ const jobApplicationSchema = new mongoose.Schema(
     },
     noticePeriod: {
       type: String,
-      default: '30 Days',
+      default: '',
     },
     resumeUrl: {
       type: String,
@@ -66,7 +66,7 @@ const jobApplicationSchema = new mongoose.Schema(
     },
     rating: {
       type: Number,
-      default: 4,
+      default: 0,
     },
     notes: {
       type: String,

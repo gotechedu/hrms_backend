@@ -112,28 +112,11 @@ const getAllOffers = async (req, res) => {
  */
 const getPortalPopupOffer = async (req, res) => {
   try {
-    let offer = await Offer.findOne({ isVisibleOnPortal: true, status: 'Active' });
-    if (!offer) {
-      // Auto-seed default offer into MongoDB database
-      offer = new Offer({
-        title: 'RHCSA T & E — 50% OFF Today!',
-        code: 'RHCSA50',
-        description: 'Master RHCSA with expert-led training and save 50% on your Training & Exam bundle—limited-time offer! ⭐',
-        badgeText: '50% OFF ON TRAINING + EXAM',
-        ctaText: 'Grab This Offer',
-        discountType: 'PERCENTAGE',
-        discountValue: 50,
-        couponType: 'ALL_COURSES',
-        bannerImage: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1200&q=80',
-        isVisibleOnPortal: true,
-        status: 'Active',
-      });
-      await offer.save();
-    }
+    const offer = await Offer.findOne({ isVisibleOnPortal: true, status: 'Active' });
 
     return res.status(200).json({
       success: true,
-      offer,
+      offer: offer || null,
     });
   } catch (error) {
     console.error('Get Portal Popup Offer Error:', error);

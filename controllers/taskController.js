@@ -2,53 +2,6 @@ const { Task } = require('../models/Task');
 const { Project } = require('../models/Project');
 const { Employee } = require('../models/Employee');
 
-const defaultTasks = [
-  {
-    taskId: 'TSK-101',
-    title: 'Setup PostgreSQL Multi-Region Database Replica',
-    projectName: 'Enterprise School ERP Platform',
-    assigneeName: 'Priya Sundaram',
-    priority: 'Urgent',
-    status: 'In Progress',
-    deadline: '2025-06-15',
-    estimatedHours: 16,
-    description: 'Configure high availability database failover with read replicas.',
-  },
-  {
-    taskId: 'TSK-102',
-    title: 'Implement Vector Indexing Pipeline for Legal Documents',
-    projectName: 'Autonomous Legal Contract Analyzer',
-    assigneeName: 'Rohan Mehra',
-    priority: 'High',
-    status: 'To Do',
-    deadline: '2025-06-20',
-    estimatedHours: 24,
-    description: 'Connect LangChain embeddings to Qdrant vector database.',
-  },
-  {
-    taskId: 'TSK-103',
-    title: 'Deploy EKS Autoscaling Worker Nodes with Karpenter',
-    projectName: 'Multi-Cloud Kubernetes Automation',
-    assigneeName: 'Ananya Verma',
-    priority: 'Urgent',
-    status: 'Review',
-    deadline: '2025-06-10',
-    estimatedHours: 12,
-    description: 'Tune node provisioning latency under burst loads.',
-  },
-  {
-    taskId: 'TSK-104',
-    title: 'Audit ISO 27001 Access Control Matrix',
-    projectName: 'FinTech SOC 2 Compliance Shield',
-    assigneeName: 'Arjun Dasgupta',
-    priority: 'Medium',
-    status: 'Done',
-    deadline: '2025-05-30',
-    estimatedHours: 8,
-    description: 'Review and verify role permissions for all production servers.',
-  },
-];
-
 /**
  * @desc    Get all tasks with filtering by priority, status, project, assignee
  * @route   GET /api/tasks
@@ -80,22 +33,10 @@ const getTasks = async (req, res) => {
       ];
     }
 
-    let tasks = await Task.find(query)
+    const tasks = await Task.find(query)
       .populate('project', 'name projectId client')
       .populate('assignee', 'firstName lastName designation department email employeeId')
       .sort({ createdAt: -1 });
-
-    // Seed defaults if clean DB
-    if (tasks.length === 0 && (!priority || priority === 'All') && (!status || status === 'All') && !search && !project && !assignee) {
-      const count = await Task.countDocuments();
-      if (count === 0) {
-        await Task.insertMany(defaultTasks);
-        tasks = await Task.find()
-          .populate('project', 'name projectId client')
-          .populate('assignee', 'firstName lastName designation department email employeeId')
-          .sort({ createdAt: -1 });
-      }
-    }
 
     res.status(200).json({
       success: true,

@@ -44,12 +44,12 @@ const courseApplicationSchema = new mongoose.Schema(
     qualification: {
       type: String,
       trim: true,
-      default: 'B.Tech / MCA / BCA',
+      default: '',
     },
     batch: {
       type: String,
       trim: true,
-      default: 'Current Cohort 2026',
+      default: '',
     },
     feesStatus: {
       type: String,

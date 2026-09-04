@@ -1,21 +1,5 @@
 const { Holiday } = require('../models/Holiday');
 
-// Seed default holidays if DB is empty so system always has valid records
-const defaultHolidays = [
-  { name: 'New Year Day', date: '2025-01-01', day: 'Wednesday', type: 'Public Holiday', isOptional: false },
-  { name: 'Republic Day', date: '2025-01-26', day: 'Sunday', type: 'National Holiday', isOptional: false },
-  { name: 'Maha Shivratri', date: '2025-02-26', day: 'Wednesday', type: 'Restricted Holiday', isOptional: true },
-  { name: 'Holi (Festival of Colors)', date: '2025-03-14', day: 'Friday', type: 'Public Holiday', isOptional: false },
-  { name: 'Eid-ul-Fitr', date: '2025-03-31', day: 'Monday', type: 'Public Holiday', isOptional: false },
-  { name: 'Good Friday', date: '2025-04-18', day: 'Friday', type: 'Public Holiday', isOptional: false },
-  { name: 'Independence Day', date: '2025-08-15', day: 'Friday', type: 'National Holiday', isOptional: false },
-  { name: 'Gandhi Jayanti', date: '2025-10-02', day: 'Thursday', type: 'National Holiday', isOptional: false },
-  { name: 'Dussehra (Vijayadashami)', date: '2025-10-02', day: 'Thursday', type: 'Public Holiday', isOptional: false },
-  { name: 'Diwali (Deepavali)', date: '2025-10-20', day: 'Monday', type: 'Public Holiday', isOptional: false },
-  { name: 'Guru Nanak Jayanti', date: '2025-11-05', day: 'Wednesday', type: 'Public Holiday', isOptional: false },
-  { name: 'Christmas Day', date: '2025-12-25', day: 'Thursday', type: 'Public Holiday', isOptional: false },
-];
-
 /**
  * @desc    Get all holidays with optional filtering by year, type, search
  * @route   GET /api/holidays
@@ -36,16 +20,7 @@ const getHolidays = async (req, res) => {
       query.name = { $regex: search, $options: 'i' };
     }
 
-    let holidays = await Holiday.find(query).sort({ date: 1 });
-
-    // Seed defaults if empty
-    if (holidays.length === 0 && (!year || year === '2025') && !search && (!type || type === 'All')) {
-      const count = await Holiday.countDocuments();
-      if (count === 0) {
-        await Holiday.insertMany(defaultHolidays);
-        holidays = await Holiday.find().sort({ date: 1 });
-      }
-    }
+    const holidays = await Holiday.find(query).sort({ date: 1 });
 
     res.status(200).json({
       success: true,

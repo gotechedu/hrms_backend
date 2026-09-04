@@ -82,6 +82,8 @@ app.get("/", (req, res) => {
       projects: "/api/projects",
       tasks: "/api/tasks",
       settings: "/api/settings",
+      contacts: "/api/contacts",
+      discussions: "/api/discussions",
       recycleBin: "/api/recycle-bin",
     },
   });
@@ -112,6 +114,8 @@ app.use("/api/holidays", require("./routes/holidayRoute"));
 app.use("/api/projects", require("./routes/projectRoute"));
 app.use("/api/tasks", require("./routes/taskRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
+app.use("/api/contacts", require("./routes/contactRoute"));
+app.use("/api/discussions", require("./routes/discussionRoute"));
 app.use("/api/recycle-bin", require("./routes/recycleBinRoute"));
 app.use("/api/roles", require("./routes/roleRoute"));
 app.use("/api/permissions", require("./routes/permissionRoute"));
