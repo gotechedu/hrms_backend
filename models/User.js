@@ -1,7 +1,21 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const ROLES = ['superadmin', 'admin', 'hr', 'employee', 'intern', 'manager', 'teamlead'];
+const ROLES = [
+  'superadmin',
+  'admin',
+  'hr',
+  'employee',
+  'intern',
+  'manager',
+  'teamlead',
+  'trainer',
+  'trainee',
+  'sales_manager',
+  'development_manager',
+  'deployment_manager',
+  'support_staff',
+];
 
 const userSchema = new mongoose.Schema(
   {
@@ -32,6 +46,7 @@ const userSchema = new mongoose.Schema(
       default: 'employee',
       lowercase: true,
       trim: true,
+      enum: ROLES,
     },
     phone: {
       type: String,
@@ -123,7 +138,9 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 const User = mongoose.model('User', userSchema);
 
-module.exports = {
-  User,
-  ROLES,
-};
+User.User = User;
+User.ROLES = ROLES;
+
+module.exports = User;
+module.exports.User = User;
+module.exports.ROLES = ROLES;

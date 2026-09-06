@@ -8,7 +8,7 @@ const {
 } = require('../controllers/holidayController');
 const { protect } = require('../middleware/authMiddleware');
 
-router.get('/', protect, getHolidays);
+router.get('/', getHolidays);
 router.post('/', protect, createHoliday);
 router.put('/:id', protect, updateHoliday);
 router.delete('/:id', protect, deleteHoliday);

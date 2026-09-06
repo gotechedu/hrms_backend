@@ -202,6 +202,24 @@ const courseSchema = new mongoose.Schema(
       enum: ['Active', 'Draft', 'Archived'],
       default: 'Active',
     },
+    courseCode: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    language: {
+      type: String,
+      default: 'English',
+    },
+    isPublished: {
+      type: Boolean,
+      default: true,
+    },
+    completionCriteria: {
+      minAttendancePercent: { type: Number, default: 75 },
+      minAssessmentScore: { type: Number, default: 60 },
+      requireAllAssignments: { type: Boolean, default: true },
+    },
     enrolledCount: {
       type: Number,
       default: 0,
@@ -231,5 +249,6 @@ courseSchema.pre('save', function () {
 });
 
 const Course = mongoose.model('Course', courseSchema);
+Course.Course = Course;
 
-module.exports = { Course };
+module.exports = Course;

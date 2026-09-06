@@ -76,12 +76,11 @@ const projectSchema = new mongoose.Schema(
 );
 
 // Auto generate projectId before saving if not present
-projectSchema.pre('save', async function (next) {
+projectSchema.pre('save', function () {
   if (!this.projectId) {
     const randomNum = Math.floor(100 + Math.random() * 900);
     this.projectId = `PRJ-${randomNum}`;
   }
-  next();
 });
 
 const Project = mongoose.model('Project', projectSchema);

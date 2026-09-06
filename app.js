@@ -87,6 +87,8 @@ app.get("/", (req, res) => {
       contacts: "/api/contacts",
       discussions: "/api/discussions",
       recycleBin: "/api/recycle-bin",
+      policies: "/api/policies",
+      grievances: "/api/grievances",
     },
   });
 });
@@ -121,7 +123,21 @@ app.use("/api/discussions", require("./routes/discussionRoute"));
 app.use("/api/recycle-bin", require("./routes/recycleBinRoute"));
 app.use("/api/roles", require("./routes/roleRoute"));
 app.use("/api/permissions", require("./routes/permissionRoute"));
+app.use("/api/policies", require("./routes/policyRoute"));
+app.use("/api/grievances", require("./routes/grievanceRoute"));
 app.use("/api", require("./routes/rolePermissionRoute"));
+
+// LMS Enterprise Subsystem Routes
+app.use("/api/curriculum", require("./routes/curriculumRoute"));
+app.use("/api/batches", require("./routes/batchRoute"));
+app.use("/api/trainer-assignments", require("./routes/trainerAssignmentRoute"));
+app.use("/api/enrollments", require("./routes/enrollmentRoute"));
+app.use("/api/classes", require("./routes/classRoute"));
+app.use("/api/learning-attendance", require("./routes/learningAttendanceRoute"));
+app.use("/api/assignments", require("./routes/assignmentRoute"));
+app.use("/api/assessments", require("./routes/assessmentRoute"));
+app.use("/api/certificates", require("./routes/certificateRoute"));
+app.use("/api/learning-analytics", require("./routes/learningAnalyticsRoute"));
 
 // Standalone Direct Payment Endpoints
 const { createPaymentOrder, verifyPaymentSignature } = require("./controllers/paymentController");

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { JobApplication } = require('../models/JobApplication');
 const { Job } = require('../models/Job');
 
@@ -70,8 +71,6 @@ const submitJobApplication = async (req, res) => {
     });
   }
 };
-
-const mongoose = require('mongoose');
 
 // GET /api/job-applications/:id
 const getJobApplicationById = async (req, res) => {

@@ -69,12 +69,11 @@ const taskSchema = new mongoose.Schema(
 );
 
 // Auto generate taskId before saving if not present
-taskSchema.pre('save', async function (next) {
+taskSchema.pre('save', function () {
   if (!this.taskId) {
     const randomNum = Math.floor(100 + Math.random() * 900);
     this.taskId = `TSK-${randomNum}`;
   }
-  next();
 });
 
 const Task = mongoose.model('Task', taskSchema);

@@ -1,8 +1,12 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const Razorpay = require('razorpay');
 const { CourseApplication } = require('../models/CourseApplication');
 const { Course } = require('../models/Course');
 const { User } = require('../models/User');
+const { Batch } = require('../models/Batch');
+const { Enrollment } = require('../models/Enrollment');
+const { AuditLog } = require('../models/AuditLog');
 const { sendPaymentInvoiceEmail } = require('../utils/emailService');
 
 // Lazy initializer for Razorpay instance
@@ -135,7 +139,47 @@ const verifyPaymentSignature = async (req, res) => {
     const paymentId = razorpay_payment_id || `pay_mock_${Date.now()}`;
     const orderId = razorpay_order_id || `order_mock_${Date.now()}`;
 
-    // 1. Find or create matching User account
+    // 0. Idempotency Check: Prevent duplicate user/application/enrollment on re-transmitted callbacks
+    const existingApp = await CourseApplication.findOne({
+      'paymentDetails.razorpayPaymentId': paymentId,
+    });
+    if (existingApp) {
+      return res.status(200).json({
+        success: true,
+        message: 'Payment already verified and processed (idempotent)',
+        application: existingApp,
+        portalUrl: 'https://hrmsgotechedu.vercel.app/',
+      });
+    }
+
+    // Resolve target Course
+    let targetCourse = null;
+    if (courseId && mongoose.Types.ObjectId.isValid(courseId)) {
+      targetCourse = await Course.findById(courseId);
+    }
+    if (!targetCourse && courseTitle) {
+      targetCourse = await Course.findOne({
+        $or: [
+          { title: new RegExp(`^${courseTitle.trim()}$`, 'i') },
+          { slug: courseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') },
+        ],
+      });
+    }
+    const finalCourseId = targetCourse ? targetCourse._id : (courseId && mongoose.Types.ObjectId.isValid(courseId) ? courseId : null);
+
+    // Resolve target Batch cohort
+    let targetBatch = null;
+    if (req.body.batchId && mongoose.Types.ObjectId.isValid(req.body.batchId)) {
+      targetBatch = await Batch.findById(req.body.batchId);
+    }
+    if (!targetBatch && finalCourseId) {
+      targetBatch = await Batch.findOne({
+        course: finalCourseId,
+        status: { $in: ['Upcoming', 'Active'] },
+      }).sort({ startDate: 1 });
+    }
+
+    // 1. Find or create matching User account with dedicated 'trainee' role
     const rawPassword = req.body.password || `Student@${Math.floor(1000 + Math.random() * 9000)}`;
     let userDoc = await User.findOne({ email: cleanEmail });
     if (!userDoc) {
@@ -143,7 +187,7 @@ const verifyPaymentSignature = async (req, res) => {
         name: studentName,
         email: cleanEmail,
         password: rawPassword,
-        role: 'employee', // Default student access role
+        role: 'trainee', // Dedicated LMS student role (NOT employee)
         phone: phone || '',
         collegeOrCompany: collegeOrCompany || '',
         qualification: qualification || '',
@@ -153,23 +197,27 @@ const verifyPaymentSignature = async (req, res) => {
       userDoc.phone = phone || userDoc.phone;
       userDoc.collegeOrCompany = collegeOrCompany || userDoc.collegeOrCompany;
       userDoc.qualification = qualification || userDoc.qualification;
+      // If user was created as default employee without staff profile, upgrade to trainee
+      if (userDoc.role === 'employee' && !userDoc.employeeProfile) {
+        userDoc.role = 'trainee';
+      }
       if (req.body.password) {
         userDoc.password = req.body.password;
       }
       await userDoc.save();
     }
 
-    // 2. Create or Update Course Application
+    // 2. Create Course Application record
     const application = new CourseApplication({
       user: userDoc._id,
-      course: courseId || null,
+      course: finalCourseId,
       courseTitle,
       studentName,
       email: cleanEmail,
       phone: phone || '',
       collegeOrCompany: collegeOrCompany || '',
       qualification: qualification || 'B.Tech / Degree',
-      batch: batch || 'Current Cohort 2026',
+      batch: targetBatch ? targetBatch.name : (batch || 'Current Cohort 2026'),
       feesStatus: 'Paid',
       feesAmount: paidAmount,
       paymentDetails: {
@@ -184,14 +232,42 @@ const verifyPaymentSignature = async (req, res) => {
       learningGoal: learningGoal || 'Career Upskilling',
       modePreference: modePreference || 'Live Online',
       status: 'Enrolled',
-      progressPercentage: 5,
+      progressPercentage: 0,
     });
 
     await application.save();
 
-    // 3. Update User's enrolled courses array
+    // 3. Create or update normalized Enrollment record
+    if (finalCourseId) {
+      const enrollment = await Enrollment.findOneAndUpdate(
+        { trainee: userDoc._id, course: finalCourseId },
+        {
+          trainee: userDoc._id,
+          course: finalCourseId,
+          batch: targetBatch ? targetBatch._id : null,
+          application: application._id,
+          status: 'Active',
+          enrolledAt: new Date(),
+          progressPercentage: 0,
+          paymentDetails: {
+            orderId,
+            paymentId,
+            amount: paidAmount,
+            paidAt: new Date(),
+            method: 'Razorpay Online',
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      if (targetBatch) {
+        await Batch.findByIdAndUpdate(targetBatch._id, { $inc: { enrolledCount: 1 } });
+      }
+    }
+
+    // 4. Update User's enrolled courses array
     userDoc.enrolledCourses.push({
-      course: courseId || null,
+      course: finalCourseId,
       application: application._id,
       courseTitle,
       enrolledAt: new Date(),
@@ -199,10 +275,21 @@ const verifyPaymentSignature = async (req, res) => {
     });
     await userDoc.save();
 
-    // 4. Increment course enrolled count if courseId provided
-    if (courseId) {
-      await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: 1 } });
+    // 5. Increment course enrolled count if finalCourseId available
+    if (finalCourseId) {
+      await Course.findByIdAndUpdate(finalCourseId, { $inc: { enrolledCount: 1 } });
     }
+
+    // 6. Audit Log payment and enrollment
+    await AuditLog.create({
+      actor: userDoc._id,
+      actorName: studentName,
+      actorRole: 'trainee',
+      action: 'PAYMENT_VERIFIED_ENROLLED',
+      entity: 'Enrollment',
+      entityId: userDoc._id.toString(),
+      metadata: { paymentId, orderId, paidAmount, courseTitle, batchName: targetBatch?.name },
+    });
 
     // 5. Send automated HTML Tax Invoice Email via Nodemailer
     await sendPaymentInvoiceEmail({

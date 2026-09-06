@@ -131,8 +131,42 @@ const checkPermission = (permissionSlug) => {
   };
 };
 
+/**
+ * Optional Protect - Attach user if token is present, but don't reject if not
+ */
+const optionalProtect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'gotech_hrms_super_secret_jwt_key_2026_secure'
+    );
+
+    const user = await User.findById(decoded.id).populate('employeeProfile');
+    req.user = user || null;
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
 module.exports = {
   protect,
+  optionalProtect,
   authorize,
   checkPermission,
 };

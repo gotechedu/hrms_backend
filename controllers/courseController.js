@@ -1,4 +1,7 @@
 const { Course } = require('../models/Course');
+const { Module } = require('../models/Module');
+const { Lesson } = require('../models/Lesson');
+const { Batch } = require('../models/Batch');
 
 // GET /api/courses
 const getAllCourses = async (req, res) => {
@@ -54,9 +57,29 @@ const getCourseById = async (req, res) => {
       });
     }
 
+    // Fetch dynamic structured modules and lessons
+    const modules = await Module.find({ course: course._id, isPublished: true }).sort({ order: 1 });
+    const moduleIds = modules.map((m) => m._id);
+    const lessons = await Lesson.find({ module: { $in: moduleIds }, isPublished: true }).sort({ order: 1 });
+
+    const curriculum = modules.map((mod) => ({
+      ...mod.toObject(),
+      lessons: lessons.filter((l) => l.module.toString() === mod._id.toString()),
+    }));
+
+    // Fetch active batches for cohort selection
+    const batches = await Batch.find({
+      course: course._id,
+      status: { $in: ['Upcoming', 'Active'] },
+    }).sort({ startDate: 1 });
+
+    const courseObj = course.toObject();
+    courseObj.curriculum = curriculum;
+    courseObj.batches = batches;
+
     return res.status(200).json({
       success: true,
-      course,
+      course: courseObj,
     });
   } catch (error) {
     console.error('Get Course By ID Error:', error);

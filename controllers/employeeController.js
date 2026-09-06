@@ -94,6 +94,7 @@ const getAllEmployees = async (req, res) => {
       totalPages: Math.ceil(totalEmployees / limitNum) || 1,
       currentPage: pageNum,
       employees,
+      data: employees,
     });
   } catch (error) {
     console.error('Get All Employees Error:', error);

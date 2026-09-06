@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { Project } = require('../models/Project');
 const { Employee } = require('../models/Employee');
 
@@ -70,7 +71,7 @@ const createProject = async (req, res) => {
     }
 
     let resolvedLeadName = leadName || '';
-    if (lead) {
+    if (lead && mongoose.Types.ObjectId.isValid(lead)) {
       const emp = await Employee.findById(lead);
       if (emp) {
         resolvedLeadName = `${emp.firstName} ${emp.lastName}`.trim();
@@ -85,7 +86,7 @@ const createProject = async (req, res) => {
       name,
       client,
       category: category || 'Full-Stack Web & Mobile',
-      lead: lead || null,
+      lead: (lead && mongoose.Types.ObjectId.isValid(lead)) ? lead : null,
       leadName: resolvedLeadName,
       budget: budget || '₹0',
       startDate: startDate || new Date().toISOString().split('T')[0],
@@ -123,9 +124,13 @@ const updateProject = async (req, res) => {
     }
 
     if (req.body.lead) {
-      const emp = await Employee.findById(req.body.lead);
-      if (emp) {
-        req.body.leadName = `${emp.firstName} ${emp.lastName}`.trim();
+      if (mongoose.Types.ObjectId.isValid(req.body.lead)) {
+        const emp = await Employee.findById(req.body.lead);
+        if (emp) {
+          req.body.leadName = `${emp.firstName} ${emp.lastName}`.trim();
+        }
+      } else {
+        req.body.lead = null;
       }
     }
 

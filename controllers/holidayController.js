@@ -10,7 +10,7 @@ const getHolidays = async (req, res) => {
     const { year, type, search } = req.query;
     let query = {};
 
-    if (year) {
+    if (year && year !== 'All') {
       query.date = { $regex: `^${year}` };
     }
     if (type && type !== 'All') {

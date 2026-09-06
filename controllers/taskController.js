@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const { Task } = require('../models/Task');
 const { Project } = require('../models/Project');
 const { Employee } = require('../models/Employee');
@@ -82,16 +83,20 @@ const createTask = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Task title and due date are required' });
     }
 
+    let resolvedProjectId = null;
     let resolvedProjectName = projectName || 'General Project';
-    if (project) {
+    if (project && mongoose.Types.ObjectId.isValid(project)) {
+      resolvedProjectId = project;
       const proj = await Project.findById(project);
       if (proj) {
         resolvedProjectName = proj.name;
       }
     }
 
+    let resolvedAssigneeId = null;
     let resolvedAssigneeName = assigneeName || 'Unassigned';
-    if (assignee) {
+    if (assignee && mongoose.Types.ObjectId.isValid(assignee)) {
+      resolvedAssigneeId = assignee;
       const emp = await Employee.findById(assignee);
       if (emp) {
         resolvedAssigneeName = `${emp.firstName} ${emp.lastName}`.trim();
@@ -105,9 +110,9 @@ const createTask = async (req, res) => {
       taskId,
       title,
       description: description || '',
-      project: project || null,
+      project: resolvedProjectId,
       projectName: resolvedProjectName,
-      assignee: assignee || null,
+      assignee: resolvedAssigneeId,
       assigneeName: resolvedAssigneeName,
       priority: priority || 'Medium',
       status: status || 'To Do',
@@ -143,17 +148,25 @@ const updateTask = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-    if (req.body.project) {
-      const proj = await Project.findById(req.body.project);
-      if (proj) {
-        req.body.projectName = proj.name;
+    if (req.body.project !== undefined) {
+      if (req.body.project && mongoose.Types.ObjectId.isValid(req.body.project)) {
+        const proj = await Project.findById(req.body.project);
+        if (proj) {
+          req.body.projectName = proj.name;
+        }
+      } else {
+        req.body.project = null;
       }
     }
 
-    if (req.body.assignee) {
-      const emp = await Employee.findById(req.body.assignee);
-      if (emp) {
-        req.body.assigneeName = `${emp.firstName} ${emp.lastName}`.trim();
+    if (req.body.assignee !== undefined) {
+      if (req.body.assignee && mongoose.Types.ObjectId.isValid(req.body.assignee)) {
+        const emp = await Employee.findById(req.body.assignee);
+        if (emp) {
+          req.body.assigneeName = `${emp.firstName} ${emp.lastName}`.trim();
+        }
+      } else {
+        req.body.assignee = null;
       }
     }
 
