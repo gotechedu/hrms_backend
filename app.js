@@ -24,9 +24,10 @@ const allowedOrigins = [
   "http://127.0.0.1:5172",
   "https://gotechedu.com",
   "https://www.gotechedu.com",
+  "https://portal.gotechedu.com",
   "https://gotechedu.vercel.app",
   "https://hrmsgotechedu.vercel.app",
-  "http://localhost:5173"
+  "http://localhost:5173",
 ];
 
 // Core Middleware
@@ -133,14 +134,20 @@ app.use("/api/batches", require("./routes/batchRoute"));
 app.use("/api/trainer-assignments", require("./routes/trainerAssignmentRoute"));
 app.use("/api/enrollments", require("./routes/enrollmentRoute"));
 app.use("/api/classes", require("./routes/classRoute"));
-app.use("/api/learning-attendance", require("./routes/learningAttendanceRoute"));
+app.use(
+  "/api/learning-attendance",
+  require("./routes/learningAttendanceRoute"),
+);
 app.use("/api/assignments", require("./routes/assignmentRoute"));
 app.use("/api/assessments", require("./routes/assessmentRoute"));
 app.use("/api/certificates", require("./routes/certificateRoute"));
 app.use("/api/learning-analytics", require("./routes/learningAnalyticsRoute"));
 
 // Standalone Direct Payment Endpoints
-const { createPaymentOrder, verifyPaymentSignature } = require("./controllers/paymentController");
+const {
+  createPaymentOrder,
+  verifyPaymentSignature,
+} = require("./controllers/paymentController");
 app.post("/api/payments/create-order", createPaymentOrder);
 app.post("/api/payments/verify-payment", verifyPaymentSignature);
 app.post("/api/course-applications/create-order", createPaymentOrder);

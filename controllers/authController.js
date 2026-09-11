@@ -1,7 +1,7 @@
-const { User, ROLES } = require('../models/User');
-const { Employee } = require('../models/Employee');
-const generateToken = require('../utils/generateToken');
-const crypto = require('crypto');
+const { User, ROLES } = require("../models/User");
+const { Employee } = require("../models/Employee");
+const generateToken = require("../utils/generateToken");
+const crypto = require("crypto");
 
 /**
  * Normalizes frontend role string to canonical backend role enum
@@ -10,13 +10,14 @@ const crypto = require('crypto');
 const normalizeRole = (roleStr) => {
   if (!roleStr) return null;
   const lower = roleStr.toLowerCase().trim();
-  if (lower.includes('superadmin') || lower.includes('super admin')) return 'superadmin';
-  if (lower.includes('admin') && !lower.includes('hr')) return 'admin';
-  if (lower.includes('hr')) return 'hr';
-  if (lower.includes('manager')) return 'manager';
-  if (lower.includes('lead') || lower.includes('teamlead')) return 'teamlead';
-  if (lower.includes('intern')) return 'intern';
-  if (lower.includes('employee')) return 'employee';
+  if (lower.includes("superadmin") || lower.includes("super admin"))
+    return "superadmin";
+  if (lower.includes("admin") && !lower.includes("hr")) return "admin";
+  if (lower.includes("hr")) return "hr";
+  if (lower.includes("manager")) return "manager";
+  if (lower.includes("lead") || lower.includes("teamlead")) return "teamlead";
+  if (lower.includes("intern")) return "intern";
+  if (lower.includes("employee")) return "employee";
   return ROLES.includes(lower) ? lower : null;
 };
 
@@ -33,24 +34,24 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide both email and password',
+        message: "Please provide both email and password",
       });
     }
 
     // Find user by email and explicitly select password
     const user = await User.findOne({ email: email.toLowerCase().trim() })
-      .select('+password')
-      .populate('employeeProfile');
+      .select("+password")
+      .populate("employeeProfile");
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password credentials',
+        message: "Invalid email or password credentials",
       });
     }
 
     // Check if user is active
-    if (user.status !== 'active') {
+    if (user.status !== "active") {
       return res.status(403).json({
         success: false,
         message: `Account is ${user.status}. Please reach out to your administrator.`,
@@ -62,7 +63,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password credentials',
+        message: "Invalid email or password credentials",
       });
     }
 
@@ -72,7 +73,7 @@ const login = async (req, res) => {
       const userRole = user.role.toLowerCase();
 
       // High-privilege role bypass (superadmin & admin can log in to any portal)
-      const isPrivileged = ['superadmin', 'admin'].includes(userRole);
+      const isPrivileged = ["superadmin", "admin"].includes(userRole);
 
       if (!isPrivileged && requestedRole && userRole !== requestedRole) {
         return res.status(403).json({
@@ -87,16 +88,16 @@ const login = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // Fetch assigned permissions for user's role
-    const { Role } = require('../models/Role');
-    const { Permission } = require('../models/Permission');
+    const { Role } = require("../models/Role");
+    const { Permission } = require("../models/Permission");
     let permissions = [];
-    const roleSlug = (user.role || '').toLowerCase().trim();
-    if (roleSlug === 'superadmin') {
+    const roleSlug = (user.role || "").toLowerCase().trim();
+    if (roleSlug === "superadmin") {
       const allPerms = await Permission.find();
       permissions = allPerms.map((p) => p.permission || p.slug);
     } else {
       const roleDoc = await Role.findOne({
-        $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, 'i') }],
+        $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, "i") }],
       });
       permissions = roleDoc ? roleDoc.permissions : [];
     }
@@ -112,7 +113,7 @@ const login = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       token,
       user: {
         _id: user._id,
@@ -126,10 +127,10 @@ const login = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Login Error:', error);
+    console.error("Login Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error occurred during login',
+      message: "Server error occurred during login",
       error: error.message,
     });
   }
@@ -144,13 +145,13 @@ const logout = async (req, res) => {
   try {
     return res.status(200).json({
       success: true,
-      message: 'Logged out successfully from session',
+      message: "Logged out successfully from session",
     });
   } catch (error) {
-    console.error('Logout Error:', error);
+    console.error("Logout Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error during logout',
+      message: "Server error during logout",
       error: error.message,
     });
   }
@@ -168,7 +169,7 @@ const forgotPassword = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide an account email address',
+        message: "Please provide an account email address",
       });
     }
 
@@ -176,7 +177,7 @@ const forgotPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'No account found with this email address',
+        message: "No account found with this email address",
       });
     }
 
@@ -191,18 +192,34 @@ const forgotPassword = async (req, res) => {
 
     console.log(`[Forgot Password] OTP generated for ${user.email}: ${otp}`);
 
+    // Send OTP email via Brevo Mail Service
+    try {
+      const { sendPasswordResetOtpEmail } = require("../utils/emailService");
+      await sendPasswordResetOtpEmail({
+        name: user.name,
+        email: user.email,
+        otp,
+        portalUrl: process.env.PORTAL_URL || "https://portal.gotechedu.com",
+        expiresInMinutes: 15,
+      });
+    } catch (emailErr) {
+      console.warn(
+        "Password reset OTP email dispatch warning:",
+        emailErr.message,
+      );
+    }
+
     return res.status(200).json({
       success: true,
       message: `A 6-digit verification code has been dispatched to ${user.email}.`,
       // For development/demo convenience:
-      otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
       expiresInMinutes: 15,
     });
   } catch (error) {
-    console.error('Forgot Password Error:', error);
+    console.error("Forgot Password Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error processing password reset request',
+      message: "Server error processing password reset request",
       error: error.message,
     });
   }
@@ -220,7 +237,7 @@ const verifyOtp = async (req, res) => {
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide both email and the 6-digit OTP code',
+        message: "Please provide both email and the 6-digit OTP code",
       });
     }
 
@@ -228,33 +245,33 @@ const verifyOtp = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User account not found',
+        message: "User account not found",
       });
     }
 
     if (!user.resetPasswordOtp || user.resetPasswordOtp !== otp.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid verification OTP code',
+        message: "Invalid verification OTP code",
       });
     }
 
     if (user.resetPasswordExpires < new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'Verification OTP has expired. Please request a new one.',
+        message: "Verification OTP has expired. Please request a new one.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'OTP code verified successfully',
+      message: "OTP code verified successfully",
     });
   } catch (error) {
-    console.error('Verify OTP Error:', error);
+    console.error("Verify OTP Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error verifying OTP code',
+      message: "Server error verifying OTP code",
       error: error.message,
     });
   }
@@ -272,14 +289,14 @@ const resetPassword = async (req, res) => {
     if (!email || !otp || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email, verification OTP, and new password',
+        message: "Please provide email, verification OTP, and new password",
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message: "New password must be at least 6 characters long",
       });
     }
 
@@ -287,21 +304,21 @@ const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User account not found',
+        message: "User account not found",
       });
     }
 
     if (!user.resetPasswordOtp || user.resetPasswordOtp !== otp.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid verification OTP code',
+        message: "Invalid verification OTP code",
       });
     }
 
     if (user.resetPasswordExpires < new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'Verification OTP code has expired. Please request a new one.',
+        message: "Verification OTP code has expired. Please request a new one.",
       });
     }
 
@@ -313,13 +330,14 @@ const resetPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Password has been reset successfully. You may now sign in with your new password.',
+      message:
+        "Password has been reset successfully. You may now sign in with your new password.",
     });
   } catch (error) {
-    console.error('Reset Password Error:', error);
+    console.error("Reset Password Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error resetting password',
+      message: "Server error resetting password",
       error: error.message,
     });
   }
@@ -333,27 +351,29 @@ const resetPassword = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate({
-      path: 'employeeProfile',
+      path: "employeeProfile",
       populate: [
-        { path: 'manager', select: 'name email role designation avatar' },
-        { path: 'teamLead', select: 'name email role designation avatar' },
+        { path: "manager", select: "name email role designation avatar" },
+        { path: "teamLead", select: "name email role designation avatar" },
       ],
     });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
-    const { Role } = require('../models/Role');
-    const { Permission } = require('../models/Permission');
+    const { Role } = require("../models/Role");
+    const { Permission } = require("../models/Permission");
     let permissions = [];
-    const roleSlug = (user.role || '').toLowerCase().trim();
-    if (roleSlug === 'superadmin') {
+    const roleSlug = (user.role || "").toLowerCase().trim();
+    if (roleSlug === "superadmin") {
       const allPerms = await Permission.find();
       permissions = allPerms.map((p) => p.permission || p.slug);
     } else {
       const roleDoc = await Role.findOne({
-        $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, 'i') }],
+        $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, "i") }],
       });
       permissions = roleDoc ? roleDoc.permissions : [];
     }
@@ -366,10 +386,10 @@ const getMe = async (req, res) => {
       user: userObj,
     });
   } catch (error) {
-    console.error('GetMe Error:', error);
+    console.error("GetMe Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching user profile',
+      message: "Server error fetching user profile",
       error: error.message,
     });
   }
@@ -387,24 +407,24 @@ const changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide both current password and new password',
+        message: "Please provide both current password and new password",
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message: "New password must be at least 6 characters long",
       });
     }
 
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await User.findById(req.user._id).select("+password");
     const isMatch = await user.matchPassword(currentPassword);
 
     if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: 'Current password does not match records',
+        message: "Current password does not match records",
       });
     }
 
@@ -413,13 +433,13 @@ const changePassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Password updated successfully',
+      message: "Password updated successfully",
     });
   } catch (error) {
-    console.error('Change Password Error:', error);
+    console.error("Change Password Error:", error);
     return res.status(500).json({
       success: false,
-      message: 'Server error updating password',
+      message: "Server error updating password",
       error: error.message,
     });
   }

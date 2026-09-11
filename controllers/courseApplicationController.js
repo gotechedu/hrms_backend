@@ -121,7 +121,7 @@ const submitCourseApplication = async (req, res) => {
       success: true,
       message: 'Student candidate enrolled successfully!',
       application,
-      portalUrl: 'https://hrmsgotechedu.vercel.app/',
+      portalUrl: process.env.PORTAL_URL || 'https://portal.gotechedu.com',
     });
   } catch (error) {
     console.error('Submit Course Application Error:', error);

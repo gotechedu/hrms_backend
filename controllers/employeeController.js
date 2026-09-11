@@ -254,9 +254,25 @@ const createEmployee = async (req, res) => {
     employee.user = user._id;
     await employee.save();
 
+    // Send welcome email with credentials & portal URL via Brevo Mail Service
+    try {
+      const { sendEmployeeWelcomeEmail } = require('../utils/emailService');
+      await sendEmployeeWelcomeEmail({
+        name: employee.name,
+        email: employee.email,
+        role: employee.role,
+        designation: employee.designation,
+        department: employee.department,
+        temporaryPassword: initialPassword,
+        portalUrl: process.env.PORTAL_URL || 'https://portal.gotechedu.com',
+      });
+    } catch (emailErr) {
+      console.warn('Welcome credentials email dispatch warning:', emailErr.message);
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'Employee created and access credentials generated successfully',
+      message: 'Employee created and welcome credentials email dispatched successfully',
       employee,
       credentials: {
         email: user.email,

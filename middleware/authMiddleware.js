@@ -93,7 +93,9 @@ const authorize = (...roles) => {
  * Verifies if the authenticated user's role has the required permission assigned
  * @param {String} permissionSlug - The permission key to check (e.g. 'employees', 'payroll')
  */
-const checkPermission = (permissionSlug) => {
+const { hasPermission: checkUserHasPermission, can: checkUserCan, requirePermission } = require('../utils/permissionUtils');
+
+const checkPermission = (permissionSlug, feature) => {
   return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -111,12 +113,24 @@ const checkPermission = (permissionSlug) => {
 
     try {
       const { Role } = require('../models/Role');
-      const roleDoc = await Role.findOne({ slug: userRole });
+      const roleDoc = await Role.findOne({
+        $or: [{ slug: userRole }, { slug: new RegExp(`^${userRole}$`, 'i') }],
+      });
 
-      if (!roleDoc || !roleDoc.permissions.includes(permissionSlug)) {
+      const userWithPerms = {
+        role: userRole,
+        permissions: roleDoc ? roleDoc.permissions : (req.user.permissions || []),
+      };
+
+      const granted = feature
+        ? checkUserCan(userWithPerms, permissionSlug, feature)
+        : checkUserHasPermission(userWithPerms, permissionSlug);
+
+      if (!granted) {
+        const requiredLabel = feature ? `${permissionSlug} on ${feature}` : permissionSlug;
         return res.status(403).json({
           success: false,
-          message: `Forbidden: Your role '${req.user.role}' lacks permission '${permissionSlug}' for this operation.`,
+          message: `Forbidden: Your role '${req.user.role}' lacks permission '${requiredLabel}' for this operation.`,
         });
       }
 
@@ -169,4 +183,5 @@ module.exports = {
   optionalProtect,
   authorize,
   checkPermission,
+  requirePermission,
 };

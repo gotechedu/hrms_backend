@@ -148,7 +148,7 @@ const verifyPaymentSignature = async (req, res) => {
         success: true,
         message: 'Payment already verified and processed (idempotent)',
         application: existingApp,
-        portalUrl: 'https://hrmsgotechedu.vercel.app/',
+        portalUrl: process.env.PORTAL_URL || 'https://portal.gotechedu.com',
       });
     }
 
@@ -291,7 +291,8 @@ const verifyPaymentSignature = async (req, res) => {
       metadata: { paymentId, orderId, paidAmount, courseTitle, batchName: targetBatch?.name },
     });
 
-    // 5. Send automated HTML Tax Invoice Email via Nodemailer
+    // 5. Send automated HTML Tax Invoice Email via Brevo Mail Service
+    const portalUrl = (process.env.PORTAL_URL || 'https://portal.gotechedu.com').replace(/\/+$/, '');
     await sendPaymentInvoiceEmail({
       studentName,
       email: cleanEmail,
@@ -302,13 +303,14 @@ const verifyPaymentSignature = async (req, res) => {
       orderId,
       paidAt: new Date(),
       batch,
+      portalUrl,
     });
 
     return res.status(200).json({
       success: true,
       message: 'Payment verified successfully and invoice sent to your email!',
       application,
-      portalUrl: 'https://hrmsgotechedu.vercel.app/',
+      portalUrl,
     });
   } catch (error) {
     console.error('Verify Payment Error:', error);
