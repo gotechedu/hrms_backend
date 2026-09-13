@@ -3,6 +3,15 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
+const {
+  helmetSecurity,
+  sanitizeNoSQL,
+  hppSecurity,
+  apiLimiter,
+  authLimiter,
+} = require("./middleware/securityMiddleware");
+const { requestLogger } = require("./middleware/requestLogger");
+
 // Load environment variables
 dotenv.config();
 
@@ -10,6 +19,16 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+// Trust reverse proxies (Vercel, Nginx, Cloudflare) for accurate client IP detection
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
+
+// 1. Security Headers (Helmet)
+app.use(helmetSecurity);
+
+// 2. HTTP Request Logger (Morgan with User Email / IP & Timing)
+app.use(requestLogger);
 
 // Allowed CORS Origins Whitelist
 const allowedOrigins = [
@@ -64,6 +83,17 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// 3. NoSQL Injection Sanitization & Parameter Pollution Prevention
+app.use(sanitizeNoSQL);
+app.use(hppSecurity);
+
+// 4. Rate Limiting Protection
+app.use("/api", apiLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api/auth/reset-password", authLimiter);
 
 // Health Check & Root API Information
 app.get("/", (req, res) => {
