@@ -4,9 +4,9 @@ const {
   getLMSOverview,
   getBatchReport,
 } = require('../controllers/learningAnalyticsController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
-router.get('/overview', protect, authorize('superadmin', 'admin', 'trainer', 'hr'), getLMSOverview);
-router.get('/batch-report/:batchId', protect, authorize('superadmin', 'admin', 'trainer'), getBatchReport);
+router.get('/overview', protect, checkAnyPermission('view_learninghub', 'manage_learninghub'), getLMSOverview);
+router.get('/batch-report/:batchId', protect, checkAnyPermission('view_learninghub', 'manage_learninghub'), getBatchReport);
 
 module.exports = router;

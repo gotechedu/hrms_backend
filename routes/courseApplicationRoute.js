@@ -7,7 +7,7 @@ const {
   updateCourseApplicationStatus,
   deleteCourseApplication,
 } = require('../controllers/courseApplicationController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 const {
   createPaymentOrder,
@@ -20,9 +20,9 @@ router.post('/create-order', createPaymentOrder);
 router.post('/verify-payment', verifyPaymentSignature);
 
 // Protected routes - HRMS staff reviews applications
-router.get('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getAllCourseApplications);
-router.get('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getCourseApplicationById);
-router.put('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), updateCourseApplicationStatus);
-router.delete('/:id', protect, authorize('superadmin', 'admin', 'hr'), deleteCourseApplication);
+router.get('/', protect, checkAnyPermission('view_learninghub', 'manage_learninghub', 'manage_applications', 'manage_career'), getAllCourseApplications);
+router.get('/:id', protect, checkAnyPermission('view_learninghub', 'manage_learninghub', 'manage_applications', 'manage_career'), getCourseApplicationById);
+router.put('/:id', protect, checkAnyPermission('manage_learninghub', 'manage_applications', 'manage_career'), updateCourseApplicationStatus);
+router.delete('/:id', protect, checkAnyPermission('manage_learninghub', 'manage_applications', 'manage_career'), deleteCourseApplication);
 
 module.exports = router;

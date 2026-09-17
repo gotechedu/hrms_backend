@@ -6,11 +6,11 @@ const {
   updateClass,
   deleteClass,
 } = require('../controllers/classController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/', protect, getAllClasses);
-router.post('/', protect, authorize('superadmin', 'admin', 'trainer'), createClass);
-router.put('/:id', protect, authorize('superadmin', 'admin', 'trainer'), updateClass);
-router.delete('/:id', protect, authorize('superadmin', 'admin', 'trainer'), deleteClass);
+router.post('/', protect, checkAnyPermission('manage_classes', 'manage_learninghub'), createClass);
+router.put('/:id', protect, checkAnyPermission('manage_classes', 'manage_learninghub'), updateClass);
+router.delete('/:id', protect, checkAnyPermission('manage_classes', 'manage_learninghub'), deleteClass);
 
 module.exports = router;

@@ -6,14 +6,14 @@ const {
   getCoursePlayer,
   markLessonComplete,
 } = require('../controllers/enrollmentController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Trainee routes
 router.get('/my-enrollments', protect, getMyEnrollments);
 router.get('/:id/learning-path', protect, getCoursePlayer);
 router.post('/:id/lessons/:lessonId/complete', protect, markLessonComplete);
 
-// Admin / Trainer management route
-router.get('/', protect, authorize('superadmin', 'admin', 'trainer', 'hr'), getAllEnrollments);
+// Management route (Admin, HR, Trainer, or roles with view_learninghub / manage_learninghub permission)
+router.get('/', protect, checkAnyPermission('view_learninghub', 'manage_learninghub'), getAllEnrollments);
 
 module.exports = router;

@@ -7,15 +7,15 @@ const {
   updateJob,
   deleteJob,
 } = require('../controllers/jobController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Public routes (used by official website & HRMS)
 router.get('/', getAllJobs);
 router.get('/:id', getJobById);
 
-// Protected routes (HRMS admin, hr, manager, superadmin)
-router.post('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), createJob);
-router.put('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), updateJob);
-router.delete('/:id', protect, authorize('superadmin', 'admin', 'hr'), deleteJob);
+// Protected routes (Roles with manage_career permission)
+router.post('/', protect, checkAnyPermission('manage_career'), createJob);
+router.put('/:id', protect, checkAnyPermission('manage_career'), updateJob);
+router.delete('/:id', protect, checkAnyPermission('manage_career'), deleteJob);
 
 module.exports = router;

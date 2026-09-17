@@ -8,7 +8,7 @@ const {
   deleteTimesheet,
   updateTimesheetStatus,
 } = require('../controllers/timesheetController');
-const { protect, checkPermission } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Employee personal timesheets
 router.post('/', protect, createTimesheet);
@@ -17,7 +17,7 @@ router.put('/:id', protect, updateTimesheet);
 router.delete('/:id', protect, deleteTimesheet);
 
 // Manager / Admin / HR review & approval
-router.get('/', protect, checkPermission('projects'), getAllTimesheets);
-router.put('/:id/status', protect, checkPermission('projects'), updateTimesheetStatus);
+router.get('/', protect, checkAnyPermission('manage_timesheet', 'view_timesheet'), getAllTimesheets);
+router.put('/:id/status', protect, checkAnyPermission('manage_timesheet', 'approve_timesheet'), updateTimesheetStatus);
 
 module.exports = router;

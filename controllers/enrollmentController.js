@@ -122,12 +122,13 @@ const getCoursePlayer = async (req, res) => {
     }
 
     // Security & IDOR check: Trainee can ONLY access their own enrollment
-    if (
-      req.user.role !== 'superadmin' &&
-      req.user.role !== 'admin' &&
-      req.user.role !== 'trainer' &&
-      enrollment.trainee.toString() !== req.user._id.toString()
-    ) {
+    const canManageCourses =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_learninghub') ||
+      req.user.hasPermission('manage_classes') ||
+      req.user.can('manage', 'learninghub');
+
+    if (!canManageCourses && enrollment.trainee.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Forbidden: You do not have authorization to view this course enrollment.',
@@ -176,11 +177,9 @@ const getCoursePlayer = async (req, res) => {
           modCompletedCount++;
         }
 
-        // A lesson is unlocked if it is a preview lesson, or if previous lessons were completed, or user is admin/trainer
+        // A lesson is unlocked if it is a preview lesson, or if previous lessons were completed, or user is authorized staff
         const isUnlocked =
-          req.user.role === 'superadmin' ||
-          req.user.role === 'admin' ||
-          req.user.role === 'trainer' ||
+          canManageCourses ||
           les.isPreview ||
           previousLessonCompleted ||
           isCompleted;
@@ -266,11 +265,12 @@ const markLessonComplete = async (req, res) => {
     }
 
     // IDOR Check
-    if (
-      req.user.role !== 'superadmin' &&
-      req.user.role !== 'admin' &&
-      enrollment.trainee.toString() !== req.user._id.toString()
-    ) {
+    const canOverrideProgress =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_learninghub') ||
+      req.user.can('manage', 'learninghub');
+
+    if (!canOverrideProgress && enrollment.trainee.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to modify this enrollment progress.',

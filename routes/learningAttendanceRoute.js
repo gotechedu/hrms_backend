@@ -5,10 +5,10 @@ const {
   markClassAttendance,
   getMyAttendance,
 } = require('../controllers/learningAttendanceController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/my-attendance', protect, getMyAttendance);
-router.get('/class/:classId', protect, authorize('superadmin', 'admin', 'trainer'), getClassAttendance);
-router.post('/batch-mark', protect, authorize('superadmin', 'admin', 'trainer'), markClassAttendance);
+router.get('/class/:classId', protect, checkAnyPermission('manage_attendance', 'manage_learninghub', 'view_learninghub'), getClassAttendance);
+router.post('/batch-mark', protect, checkAnyPermission('manage_attendance', 'manage_learninghub'), markClassAttendance);
 
 module.exports = router;

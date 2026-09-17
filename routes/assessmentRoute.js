@@ -6,11 +6,11 @@ const {
   createAssessment,
   submitAssessmentAttempt,
 } = require('../controllers/assessmentController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/', protect, getAllAssessments);
 router.get('/:id', protect, getAssessmentById);
-router.post('/', protect, authorize('superadmin', 'admin', 'trainer'), createAssessment);
+router.post('/', protect, checkAnyPermission('manage_assessments', 'manage_learninghub'), createAssessment);
 router.post('/:id/submit', protect, submitAssessmentAttempt);
 
 module.exports = router;

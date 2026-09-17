@@ -14,11 +14,11 @@ const normalizeRole = (roleStr) => {
     return "superadmin";
   if (lower.includes("admin") && !lower.includes("hr")) return "admin";
   if (lower.includes("hr")) return "hr";
-  if (lower.includes("manager")) return "manager";
+  if (lower.includes("manager") && !lower.includes("sales") && !lower.includes("development") && !lower.includes("deployment")) return "manager";
   if (lower.includes("lead") || lower.includes("teamlead")) return "teamlead";
   if (lower.includes("intern")) return "intern";
   if (lower.includes("employee")) return "employee";
-  return ROLES.includes(lower) ? lower : null;
+  return lower;
 };
 
 /**
@@ -70,12 +70,12 @@ const login = async (req, res) => {
     // Role-based portal validation (if a specific role is requested from login portal)
     if (role) {
       const requestedRole = normalizeRole(role);
-      const userRole = user.role.toLowerCase();
+      const userRole = (user.role || "").toLowerCase();
 
       // High-privilege role bypass (superadmin & admin can log in to any portal)
       const isPrivileged = ["superadmin", "admin"].includes(userRole);
 
-      if (!isPrivileged && requestedRole && userRole !== requestedRole) {
+      if (!isPrivileged && requestedRole && userRole !== requestedRole && !userRole.includes(requestedRole)) {
         return res.status(403).json({
           success: false,
           message: `Access denied. Your assigned role '${user.role}' does not match the '${role}' portal.`,
@@ -90,6 +90,7 @@ const login = async (req, res) => {
     // Fetch assigned permissions for user's role
     const { Role } = require("../models/Role");
     const { Permission } = require("../models/Permission");
+    const { DEFAULT_ROLE_PERMISSIONS } = require("../utils/permissionUtils");
     let permissions = [];
     const roleSlug = (user.role || "").toLowerCase().trim();
     if (roleSlug === "superadmin") {
@@ -99,7 +100,11 @@ const login = async (req, res) => {
       const roleDoc = await Role.findOne({
         $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, "i") }],
       });
-      permissions = roleDoc ? roleDoc.permissions : [];
+      if (roleDoc && Array.isArray(roleDoc.permissions)) {
+        permissions = roleDoc.permissions;
+      } else {
+        permissions = DEFAULT_ROLE_PERMISSIONS[roleSlug] || [];
+      }
     }
 
     // Generate JWT token
@@ -366,6 +371,7 @@ const getMe = async (req, res) => {
 
     const { Role } = require("../models/Role");
     const { Permission } = require("../models/Permission");
+    const { DEFAULT_ROLE_PERMISSIONS } = require("../utils/permissionUtils");
     let permissions = [];
     const roleSlug = (user.role || "").toLowerCase().trim();
     if (roleSlug === "superadmin") {
@@ -375,7 +381,11 @@ const getMe = async (req, res) => {
       const roleDoc = await Role.findOne({
         $or: [{ slug: roleSlug }, { slug: new RegExp(`^${roleSlug}$`, "i") }],
       });
-      permissions = roleDoc ? roleDoc.permissions : [];
+      if (roleDoc && Array.isArray(roleDoc.permissions)) {
+        permissions = roleDoc.permissions;
+      } else {
+        permissions = DEFAULT_ROLE_PERMISSIONS[roleSlug] || [];
+      }
     }
 
     const userObj = user.toObject();

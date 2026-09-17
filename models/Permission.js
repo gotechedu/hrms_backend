@@ -15,6 +15,11 @@ const permissionSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
     name: {
       type: String,
       required: [true, 'Please provide readable permission name'],
@@ -36,18 +41,13 @@ permissionSchema.pre('validate', function () {
   if (!this.permission && this.slug) {
     this.permission = this.slug;
   }
+  if (!this.slug && this.permission) {
+    this.slug = this.permission;
+  }
   if (!this.module) {
     this.module = 'general';
   }
 });
-
-// Alias slug to permission for backward compatibility
-permissionSchema.virtual('slug').get(function () {
-  return this.permission;
-});
-
-permissionSchema.set('toJSON', { virtuals: true });
-permissionSchema.set('toObject', { virtuals: true });
 
 const Permission = mongoose.model('Permission', permissionSchema);
 

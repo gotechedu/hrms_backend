@@ -7,12 +7,12 @@ const {
   getAssignmentSubmissions,
   gradeSubmission,
 } = require('../controllers/assignmentController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/', protect, getAllAssignments);
-router.post('/', protect, authorize('superadmin', 'admin', 'trainer'), createAssignment);
+router.post('/', protect, checkAnyPermission('manage_assignments', 'manage_learninghub'), createAssignment);
 router.post('/:id/submit', protect, submitAssignment);
-router.get('/:id/submissions', protect, authorize('superadmin', 'admin', 'trainer'), getAssignmentSubmissions);
-router.post('/submissions/:submissionId/grade', protect, authorize('superadmin', 'admin', 'trainer'), gradeSubmission);
+router.get('/:id/submissions', protect, checkAnyPermission('manage_assignments', 'grade_submissions', 'manage_learninghub'), getAssignmentSubmissions);
+router.post('/submissions/:submissionId/grade', protect, checkAnyPermission('grade_submissions', 'manage_assignments', 'manage_learninghub'), gradeSubmission);
 
 module.exports = router;

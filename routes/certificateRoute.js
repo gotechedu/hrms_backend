@@ -5,13 +5,13 @@ const {
   issueCertificate,
   verifyCertificatePublic,
 } = require('../controllers/certificateController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Public verification
 router.get('/verify/:code', verifyCertificatePublic);
 
 // Authenticated trainee and admin routes
 router.get('/', protect, getAllCertificates);
-router.post('/issue', protect, authorize('superadmin', 'admin'), issueCertificate);
+router.post('/issue', protect, checkAnyPermission('issue_certificates', 'manage_learninghub'), issueCertificate);
 
 module.exports = router;

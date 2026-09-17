@@ -7,15 +7,15 @@ const {
   updateJobApplicationStage,
   deleteJobApplication,
 } = require('../controllers/jobApplicationController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Public route - candidates apply from official website
 router.post('/', submitJobApplication);
 
 // Protected routes - HRMS staff reviews candidates
-router.get('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getAllJobApplications);
-router.get('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getJobApplicationById);
-router.put('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), updateJobApplicationStage);
-router.delete('/:id', protect, authorize('superadmin', 'admin', 'hr'), deleteJobApplication);
+router.get('/', protect, checkAnyPermission('view_career', 'manage_applications', 'manage_career'), getAllJobApplications);
+router.get('/:id', protect, checkAnyPermission('view_career', 'manage_applications', 'manage_career'), getJobApplicationById);
+router.put('/:id', protect, checkAnyPermission('manage_applications', 'manage_career'), updateJobApplicationStage);
+router.delete('/:id', protect, checkAnyPermission('manage_applications', 'manage_career'), deleteJobApplication);
 
 module.exports = router;

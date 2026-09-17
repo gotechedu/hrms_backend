@@ -8,13 +8,13 @@ const {
   deleteRole,
   assignRolePermissions,
 } = require('../controllers/rolePermissionController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/', protect, getRoles);
-router.post('/', protect, authorize('superadmin', 'admin'), createRole);
+router.post('/', protect, checkAnyPermission('manage_roles', 'manage_permissions'), createRole);
 router.get('/:id', protect, getRoleById);
-router.put('/:id', protect, authorize('superadmin', 'admin'), updateRole);
-router.delete('/:id', protect, authorize('superadmin', 'admin'), deleteRole);
-router.put('/:id/permissions', protect, authorize('superadmin', 'admin'), assignRolePermissions);
+router.put('/:id', protect, checkAnyPermission('manage_roles', 'manage_permissions'), updateRole);
+router.delete('/:id', protect, checkAnyPermission('manage_roles', 'manage_permissions'), deleteRole);
+router.put('/:id/permissions', protect, checkAnyPermission('manage_roles', 'manage_permissions'), assignRolePermissions);
 
 module.exports = router;

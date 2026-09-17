@@ -218,6 +218,18 @@ const getAllAttendance = async (req, res) => {
       filter.status = status;
     }
 
+    const canViewAll =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_attendance') ||
+      req.user.hasPermission('manage_attandance') ||
+      req.user.hasPermission('view_attendance') ||
+      req.user.can('manage', 'attendance') ||
+      req.user.can('view', 'attendance');
+
+    if (!canViewAll) {
+      filter.user = req.user._id;
+    }
+
     const records = await Attendance.find(filter)
       .populate('user', 'name email role status')
       .populate('employee', 'name employeeId department designation avatar')
@@ -295,10 +307,14 @@ const applyLeave = async (req, res) => {
  */
 const getLeaveRequests = async (req, res) => {
   try {
-    const userRole = (req.user.role || '').toLowerCase();
-    const isManager = ['superadmin', 'admin', 'hr', 'manager'].includes(userRole);
+    const canManageLeaves =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_attendance') ||
+      req.user.hasPermission('manage_attandance') ||
+      req.user.hasPermission('approve_leave') ||
+      req.user.can('manage', 'attendance');
 
-    const query = isManager ? {} : { user: req.user._id };
+    const query = canManageLeaves ? {} : { user: req.user._id };
 
     const leaves = await LeaveRequest.find(query)
       .populate('user', 'name email role')
@@ -328,6 +344,20 @@ const updateLeaveStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+
+    const canApprove =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_attendance') ||
+      req.user.hasPermission('manage_attandance') ||
+      req.user.hasPermission('approve_leave') ||
+      req.user.can('manage', 'attendance');
+
+    if (!canApprove) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden: Your role '${req.user.role}' is not authorized to approve or reject leave applications.`,
+      });
+    }
 
     if (!['Approved', 'Rejected', 'Pending Review'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid leave status' });

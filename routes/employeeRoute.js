@@ -9,23 +9,23 @@ const {
   getEmployeeStats,
   getDepartmentsList,
 } = require('../controllers/employeeController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // All employee routes require authentication
 router.use(protect);
 
 // Specific helper endpoints (placed above :id to prevent parameter clash)
-router.get('/stats', authorize('admin', 'hr', 'manager'), getEmployeeStats);
+router.get('/stats', checkAnyPermission('view_employee', 'manage_employee'), getEmployeeStats);
 router.get('/departments', getDepartmentsList);
 
 // Main CRUD endpoints
 router.route('/')
-  .get(getAllEmployees)
-  .post(authorize('admin', 'hr'), createEmployee);
+  .get(checkAnyPermission('view_employee', 'manage_employee'), getAllEmployees)
+  .post(checkAnyPermission('create_employee', 'manage_employee'), createEmployee);
 
 router.route('/:id')
-  .get(getEmployeeById)
-  .put(authorize('admin', 'hr', 'manager'), updateEmployee)
-  .delete(authorize('admin', 'hr'), deleteEmployee);
+  .get(checkAnyPermission('view_employee', 'manage_employee'), getEmployeeById)
+  .put(checkAnyPermission('update_employee', 'edit_employee', 'manage_employee'), updateEmployee)
+  .delete(checkAnyPermission('delete_employee', 'manage_employee'), deleteEmployee);
 
 module.exports = router;

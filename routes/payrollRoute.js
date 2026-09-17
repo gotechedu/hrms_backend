@@ -10,13 +10,17 @@ const {
   deletePayroll,
 } = require('../controllers/payrollController');
 
-// Routes
-router.get('/', getPayrolls);
-router.get('/stats', getPayrollStats);
-router.get('/:id', getPayrollById);
-router.post('/', createPayroll);
-router.put('/:id', updatePayroll);
-router.patch('/:id/status', updatePaymentStatus);
-router.delete('/:id', deletePayroll);
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
+
+// All payroll routes require authentication and payroll permission
+router.use(protect);
+
+router.get('/', checkAnyPermission('view_payroll', 'manage_payroll'), getPayrolls);
+router.get('/stats', checkAnyPermission('view_payroll', 'manage_payroll'), getPayrollStats);
+router.get('/:id', checkAnyPermission('view_payroll', 'manage_payroll'), getPayrollById);
+router.post('/', checkAnyPermission('manage_payroll'), createPayroll);
+router.put('/:id', checkAnyPermission('manage_payroll'), updatePayroll);
+router.patch('/:id/status', checkAnyPermission('manage_payroll'), updatePaymentStatus);
+router.delete('/:id', checkAnyPermission('manage_payroll'), deletePayroll);
 
 module.exports = router;

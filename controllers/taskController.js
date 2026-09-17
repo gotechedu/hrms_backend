@@ -235,6 +235,20 @@ const deleteTask = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
+    const canDelete =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('delete_task') ||
+      req.user.hasPermission('manage_task') ||
+      req.user.can('delete', 'task') ||
+      req.user.can('manage', 'task');
+
+    if (!canDelete) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden: Your role '${req.user.role}' lacks permission to delete tasks.`,
+      });
+    }
+
     await task.deleteOne();
 
     res.status(200).json({

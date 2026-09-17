@@ -6,11 +6,11 @@ const {
   getPermissionMatrix,
   updatePermissionMatrix,
 } = require('../controllers/rolePermissionController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/', protect, getPermissions);
-router.post('/', protect, authorize('superadmin', 'admin'), createPermission);
+router.post('/', protect, checkAnyPermission('manage_roles', 'manage_permissions'), createPermission);
 router.get('/matrix', protect, getPermissionMatrix);
-router.put('/matrix', protect, authorize('superadmin', 'admin'), updatePermissionMatrix);
+router.put('/matrix', protect, checkAnyPermission('manage_roles', 'manage_permissions'), updatePermissionMatrix);
 
 module.exports = router;

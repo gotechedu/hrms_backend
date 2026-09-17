@@ -8,13 +8,13 @@ const {
   updateTaskStatus,
   deleteTask,
 } = require('../controllers/taskController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
-router.get('/', protect, getTasks);
-router.get('/:id', protect, getTaskById);
-router.post('/', protect, createTask);
-router.put('/:id', protect, updateTask);
-router.patch('/:id/status', protect, updateTaskStatus);
-router.delete('/:id', protect, deleteTask);
+router.get('/', protect, checkAnyPermission('view_task', 'manage_task'), getTasks);
+router.get('/:id', protect, checkAnyPermission('view_task', 'manage_task'), getTaskById);
+router.post('/', protect, checkAnyPermission('add_task', 'create_task', 'manage_task'), createTask);
+router.put('/:id', protect, checkAnyPermission('update_task', 'edit_task', 'manage_task'), updateTask);
+router.patch('/:id/status', protect, checkAnyPermission('update_task', 'edit_task', 'manage_task'), updateTaskStatus);
+router.delete('/:id', protect, checkAnyPermission('delete_task', 'manage_task'), deleteTask);
 
 module.exports = router;

@@ -90,7 +90,12 @@ const getAssessmentById = async (req, res) => {
       });
     }
 
-    const isStaff = req.user && ['superadmin', 'admin', 'trainer'].includes(req.user.role);
+    const isStaff =
+      req.user &&
+      (req.user.isSuperAdmin ||
+        req.user.hasPermission('manage_learninghub') ||
+        req.user.hasPermission('grade_submissions') ||
+        req.user.can('manage', 'learninghub'));
 
     // Sanitize question options so correct answers aren't leaked to students
     const sanitizedQuestions = assessment.questions.map((q) => {

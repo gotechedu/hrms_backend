@@ -8,16 +8,16 @@ const {
   deleteOffer,
   validateCoupon,
 } = require('../controllers/offerController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Public routes for website frontend & checkout
 router.get('/portal-popup', getPortalPopupOffer);
 router.post('/validate', validateCoupon);
 
 // HRMS Management routes
-router.get('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), getAllOffers);
-router.post('/', protect, authorize('superadmin', 'admin', 'hr'), createOffer);
-router.put('/:id', protect, authorize('superadmin', 'admin', 'hr'), updateOffer);
-router.delete('/:id', protect, authorize('superadmin', 'admin'), deleteOffer);
+router.get('/', protect, checkAnyPermission('view_learninghub', 'manage_learninghub', 'manage_career', 'view_career', 'manage_settings'), getAllOffers);
+router.post('/', protect, checkAnyPermission('manage_learninghub', 'manage_career', 'manage_settings'), createOffer);
+router.put('/:id', protect, checkAnyPermission('manage_learninghub', 'manage_career', 'manage_settings'), updateOffer);
+router.delete('/:id', protect, checkAnyPermission('manage_learninghub', 'manage_career', 'manage_settings'), deleteOffer);
 
 module.exports = router;

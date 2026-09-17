@@ -7,15 +7,15 @@ const {
   updateBlog,
   deleteBlog,
 } = require('../controllers/blogController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 // Public routes (used by official website & HRMS)
 router.get('/', getAllBlogs);
 router.get('/:slugOrId', getBlogBySlugOrId);
 
-// Protected routes (HRMS admin, hr, manager, superadmin)
-router.post('/', protect, authorize('superadmin', 'admin', 'hr', 'manager'), createBlog);
-router.put('/:id', protect, authorize('superadmin', 'admin', 'hr', 'manager'), updateBlog);
-router.delete('/:id', protect, authorize('superadmin', 'admin', 'hr'), deleteBlog);
+// Protected routes (Roles with manage_blogs permission)
+router.post('/', protect, checkAnyPermission('manage_blogs'), createBlog);
+router.put('/:id', protect, checkAnyPermission('manage_blogs'), updateBlog);
+router.delete('/:id', protect, checkAnyPermission('manage_blogs'), deleteBlog);
 
 module.exports = router;

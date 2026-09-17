@@ -7,12 +7,12 @@ const {
   removeTrainerAssignment,
   getTrainerDashboardStats,
 } = require('../controllers/trainerAssignmentController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
 
-router.get('/trainers', protect, authorize('superadmin', 'admin', 'trainer', 'hr'), getAllTrainers);
-router.get('/', protect, authorize('superadmin', 'admin', 'trainer'), getAllAssignments);
-router.post('/', protect, authorize('superadmin', 'admin'), createTrainerAssignment);
-router.delete('/:id', protect, authorize('superadmin', 'admin'), removeTrainerAssignment);
-router.get('/trainer-dashboard-stats', protect, authorize('superadmin', 'admin', 'trainer'), getTrainerDashboardStats);
+router.get('/trainers', protect, checkAnyPermission('manage_trainers', 'manage_learninghub', 'view_learninghub'), getAllTrainers);
+router.get('/', protect, checkAnyPermission('manage_trainers', 'manage_learninghub', 'view_learninghub'), getAllAssignments);
+router.post('/', protect, checkAnyPermission('manage_trainers', 'manage_learninghub'), createTrainerAssignment);
+router.delete('/:id', protect, checkAnyPermission('manage_trainers', 'manage_learninghub'), removeTrainerAssignment);
+router.get('/trainer-dashboard-stats', protect, checkAnyPermission('manage_trainers', 'manage_learninghub', 'view_learninghub'), getTrainerDashboardStats);
 
 module.exports = router;

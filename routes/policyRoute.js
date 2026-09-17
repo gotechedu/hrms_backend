@@ -8,13 +8,13 @@ const {
   deletePolicy,
   acknowledgePolicy,
 } = require('../controllers/policyController');
-const { protect, optionalProtect } = require('../middleware/authMiddleware');
+const { protect, optionalProtect, checkAnyPermission } = require('../middleware/authMiddleware');
 
 router.get('/', optionalProtect, getPolicies);
 router.get('/:id', optionalProtect, getPolicyById);
-router.post('/', protect, createPolicy);
-router.put('/:id', protect, updatePolicy);
-router.delete('/:id', protect, deletePolicy);
+router.post('/', protect, checkAnyPermission('manage_policy'), createPolicy);
+router.put('/:id', protect, checkAnyPermission('manage_policy'), updatePolicy);
+router.delete('/:id', protect, checkAnyPermission('manage_policy'), deletePolicy);
 router.post('/:id/acknowledge', optionalProtect, acknowledgePolicy);
 
 module.exports = router;

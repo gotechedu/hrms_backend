@@ -107,6 +107,17 @@ const getAllTimesheets = async (req, res) => {
     if (project && project !== 'All') filter.project = project;
     if (week && week !== 'All') filter.weekStartDate = week;
 
+    const canViewAll =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_timesheet') ||
+      req.user.hasPermission('view_timesheet') ||
+      req.user.can('manage', 'timesheet') ||
+      req.user.can('view', 'timesheet');
+
+    if (!canViewAll) {
+      filter.user = req.user._id;
+    }
+
     const timesheets = await Timesheet.find(filter)
       .populate('user', 'name email role')
       .populate('employee', 'name employeeId department designation avatar')
@@ -159,7 +170,14 @@ const updateTimesheet = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Timesheet not found' });
     }
 
-    if (timesheet.user.toString() !== req.user._id.toString() && req.user.role !== 'superadmin') {
+    const canManage =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_timesheet') ||
+      req.user.hasPermission('edit_timesheet') ||
+      req.user.can('manage', 'timesheet') ||
+      req.user.can('edit', 'timesheet');
+
+    if (timesheet.user.toString() !== req.user._id.toString() && !canManage) {
       return res.status(403).json({ success: false, message: 'Not authorized to edit this timesheet' });
     }
 
@@ -203,7 +221,14 @@ const deleteTimesheet = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Timesheet not found' });
     }
 
-    if (timesheet.user.toString() !== req.user._id.toString() && req.user.role !== 'superadmin') {
+    const canDelete =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_timesheet') ||
+      req.user.hasPermission('delete_timesheet') ||
+      req.user.can('manage', 'timesheet') ||
+      req.user.can('delete', 'timesheet');
+
+    if (timesheet.user.toString() !== req.user._id.toString() && !canDelete) {
       return res.status(403).json({ success: false, message: 'Not authorized to delete this timesheet' });
     }
 
@@ -230,6 +255,19 @@ const updateTimesheetStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, remarks } = req.body;
+
+    const canApprove =
+      req.user.isSuperAdmin ||
+      req.user.hasPermission('manage_timesheet') ||
+      req.user.hasPermission('approve_timesheet') ||
+      req.user.can('manage', 'timesheet');
+
+    if (!canApprove) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden: Your role '${req.user.role}' is not authorized to approve or reject timesheets.`,
+      });
+    }
 
     if (!['Approved', 'Rejected', 'Submitted', 'Draft'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });

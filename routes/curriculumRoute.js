@@ -12,21 +12,21 @@ const {
   reorderLessons,
   getLessonPublicPreview,
 } = require('../controllers/curriculumController');
-const { protect, authorize, optionalProtect } = require('../middleware/authMiddleware');
+const { protect, checkAnyPermission, optionalProtect } = require('../middleware/authMiddleware');
 
 // Public routes for curriculum browsing and free preview
 router.get('/course/:courseId', optionalProtect, getCourseCurriculum);
 router.get('/lessons/:lessonId/preview', getLessonPublicPreview);
 
-// Protected authoring routes (Superadmin, Admin, Trainer)
-router.post('/modules', protect, authorize('superadmin', 'admin', 'trainer'), createModule);
-router.put('/modules/:moduleId', protect, authorize('superadmin', 'admin', 'trainer'), updateModule);
-router.delete('/modules/:moduleId', protect, authorize('superadmin', 'admin'), deleteModule);
-router.post('/modules/reorder', protect, authorize('superadmin', 'admin', 'trainer'), reorderModules);
+// Protected authoring routes (Roles with learninghub management permissions)
+router.post('/modules', protect, checkAnyPermission('manage_learninghub'), createModule);
+router.put('/modules/:moduleId', protect, checkAnyPermission('manage_learninghub'), updateModule);
+router.delete('/modules/:moduleId', protect, checkAnyPermission('manage_learninghub'), deleteModule);
+router.post('/modules/reorder', protect, checkAnyPermission('manage_learninghub'), reorderModules);
 
-router.post('/lessons', protect, authorize('superadmin', 'admin', 'trainer'), createLesson);
-router.put('/lessons/:lessonId', protect, authorize('superadmin', 'admin', 'trainer'), updateLesson);
-router.delete('/lessons/:lessonId', protect, authorize('superadmin', 'admin', 'trainer'), deleteLesson);
-router.post('/lessons/reorder', protect, authorize('superadmin', 'admin', 'trainer'), reorderLessons);
+router.post('/lessons', protect, checkAnyPermission('manage_learninghub'), createLesson);
+router.put('/lessons/:lessonId', protect, checkAnyPermission('manage_learninghub'), updateLesson);
+router.delete('/lessons/:lessonId', protect, checkAnyPermission('manage_learninghub'), deleteLesson);
+router.post('/lessons/reorder', protect, checkAnyPermission('manage_learninghub'), reorderLessons);
 
 module.exports = router;
