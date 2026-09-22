@@ -9,7 +9,9 @@ const {
   hppSecurity,
   apiLimiter,
   authLimiter,
+  formSubmitLimiter,
 } = require("./middleware/securityMiddleware");
+const { xssSanitizer } = require("./middleware/xssSanitizer");
 const { requestLogger } = require("./middleware/requestLogger");
 
 // Load environment variables
@@ -81,11 +83,12 @@ app.use(
     ],
   }),
 );
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
-// 3. NoSQL Injection Sanitization & Parameter Pollution Prevention
+// 3. NoSQL Injection Sanitization, Anti-XSS & Parameter Pollution Prevention
 app.use(sanitizeNoSQL);
+app.use(xssSanitizer);
 app.use(hppSecurity);
 
 // 4. Rate Limiting Protection
@@ -94,6 +97,9 @@ app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 app.use("/api/auth/forgot-password", authLimiter);
 app.use("/api/auth/reset-password", authLimiter);
+app.use("/api/contacts", formSubmitLimiter);
+app.use("/api/course-applications", formSubmitLimiter);
+app.use("/api/job-applications", formSubmitLimiter);
 
 // Health Check & Root API Information
 app.get("/", (req, res) => {
@@ -132,6 +138,9 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+const http = require("http");
+const { initSocket } = require("./socket");
+
 // API Routes
 app.use("/api/auth", require("./routes/authRoute"));
 app.use("/api/employees", require("./routes/employeeRoute"));
@@ -151,6 +160,7 @@ app.use("/api/tasks", require("./routes/taskRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/contacts", require("./routes/contactRoute"));
 app.use("/api/discussions", require("./routes/discussionRoute"));
+app.use("/api/chat", require("./routes/chatRoute"));
 app.use("/api/recycle-bin", require("./routes/recycleBinRoute"));
 app.use("/api/roles", require("./routes/roleRoute"));
 app.use("/api/permissions", require("./routes/permissionRoute"));
@@ -196,17 +206,28 @@ app.use((err, req, res, next) => {
   console.error("[Global Error]", err);
 
   const statusCode = err.statusCode || 500;
+  const isDev = process.env.NODE_ENV === "development";
+
+  // Prevent leaking internal database errors or stack traces in production
+  let clientMessage = err.message || "Internal Server Error";
+  if (statusCode === 500 && !isDev) {
+    clientMessage = "An unexpected error occurred. Please try again later.";
+  }
+
   res.status(statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    message: clientMessage,
+    error: isDev ? err.stack : undefined,
   });
 });
 
+const server = http.createServer(app);
+initSocket(server);
+
 const PORT = process.env.PORT || 5000;
 
-if (process.env.NODE_ENV !== "test") {
-  app.listen(PORT, () => {
+if (require.main === module && process.env.NODE_ENV !== "test") {
+  server.listen(PORT, () => {
     console.log(`\n=================================================`);
     console.log(`🛡️  GoTechEdu HRMS Backend Server is active!`);
     console.log(`📍 Port: http://localhost:${PORT}`);
@@ -214,8 +235,13 @@ if (process.env.NODE_ENV !== "test") {
     console.log(
       `👥 Employee Endpoints: http://localhost:${PORT}/api/employees`,
     );
+    console.log(
+      `💬 Real-Time Chat & Socket.IO: http://localhost:${PORT}/api/chat`,
+    );
     console.log(`=================================================\n`);
   });
 }
 
+app.server = server;
 module.exports = app;
+

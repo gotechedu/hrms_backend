@@ -8,9 +8,11 @@ const {
   deleteJobApplication,
 } = require('../controllers/jobApplicationController');
 const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
+const { formSubmitLimiter } = require('../middleware/securityMiddleware');
+const { validateJobApplicationInput } = require('../middleware/validatorMiddleware');
 
 // Public route - candidates apply from official website
-router.post('/', submitJobApplication);
+router.post('/', formSubmitLimiter, validateJobApplicationInput, submitJobApplication);
 
 // Protected routes - HRMS staff reviews candidates
 router.get('/', protect, checkAnyPermission('view_career', 'manage_applications', 'manage_career'), getAllJobApplications);

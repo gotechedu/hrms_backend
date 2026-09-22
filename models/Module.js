@@ -29,6 +29,16 @@ const moduleSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    circularUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    documentUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     isPublished: {
       type: Boolean,
       default: true,

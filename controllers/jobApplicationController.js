@@ -59,15 +59,16 @@ const submitJobApplication = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Job candidate registered successfully!',
-      application,
+      message: 'Job application submitted successfully! Our talent acquisition team will review your application.',
+      applicationId: application._id,
+      jobTitle: application.jobTitle,
+      name: application.name,
     });
   } catch (error) {
     console.error('Submit Job Application Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error submitting job application',
-      error: error.message,
+      message: 'Server error submitting job application. Please try again later.',
     });
   }
 };

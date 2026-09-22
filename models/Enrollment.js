@@ -23,6 +23,7 @@ const enrollmentSchema = new mongoose.Schema(
     enrollmentNumber: {
       type: String,
       unique: true,
+      sparse: true,
       trim: true,
     },
     status: {

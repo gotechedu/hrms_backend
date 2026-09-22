@@ -54,21 +54,13 @@ const submitContactInquiry = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: 'Thank you! Your technical consultation request has been submitted successfully.',
-      inquiryId: inquiry._id,
-      inquiry: {
-        id: inquiry._id,
-        fullName: inquiry.fullName,
-        email: inquiry.email,
-        service: inquiry.service,
-        createdAt: inquiry.createdAt,
-      },
+      referenceId: inquiry._id,
     });
   } catch (error) {
     console.error('[ContactController] submitContactInquiry error:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to submit consultation request. Please try again or reach out directly.',
-      error: error.message,
     });
   }
 };

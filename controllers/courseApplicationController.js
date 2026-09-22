@@ -119,16 +119,17 @@ const submitCourseApplication = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Student candidate enrolled successfully!',
-      application,
+      message: 'Student application submitted successfully!',
+      applicationId: application._id,
+      studentName: application.studentName,
+      courseTitle: application.courseTitle,
       portalUrl: process.env.PORTAL_URL || 'https://portal.gotechedu.com',
     });
   } catch (error) {
     console.error('Submit Course Application Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error creating candidate enrollment',
-      error: error.message,
+      message: 'Server error processing candidate enrollment. Please try again.',
     });
   }
 };

@@ -10,9 +10,11 @@ const {
   deleteContactInquiry,
 } = require('../controllers/contactController');
 const { protect, checkAnyPermission } = require('../middleware/authMiddleware');
+const { formSubmitLimiter } = require('../middleware/securityMiddleware');
+const { validateContactInquiryInput } = require('../middleware/validatorMiddleware');
 
 // Public route - official website visitors submit contact consultation inquiries
-router.post('/', submitContactInquiry);
+router.post('/', formSubmitLimiter, validateContactInquiryInput, submitContactInquiry);
 
 // Protected routes - HRMS staff access
 router.get('/stats', protect, checkAnyPermission('view_contacts', 'manage_contacts', 'manage_contact'), getContactStats);

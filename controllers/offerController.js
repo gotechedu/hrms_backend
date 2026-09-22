@@ -229,7 +229,13 @@ const validateCoupon = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: `Coupon '${cleanCode}' applied successfully!`,
-      offer,
+      offer: {
+        code: offer.code,
+        title: offer.title,
+        discountType: offer.discountType,
+        discountValue: offer.discountValue,
+        minimumOrderAmount: offer.minimumOrderAmount || 0,
+      },
     });
   } catch (error) {
     console.error('Validate Coupon Error:', error);

@@ -57,7 +57,7 @@ const getCourseCurriculum = async (req, res) => {
  */
 const createModule = async (req, res) => {
   try {
-    const { courseId, title, description, duration, learningObjectives, order } = req.body;
+    const { courseId, title, description, duration, learningObjectives, order, circularUrl, documentUrl } = req.body;
 
     if (!courseId || !title) {
       return res.status(400).json({
@@ -86,6 +86,8 @@ const createModule = async (req, res) => {
       description: description || '',
       duration: duration || '1 Week',
       learningObjectives: Array.isArray(learningObjectives) ? learningObjectives : [],
+      circularUrl: circularUrl || '',
+      documentUrl: documentUrl || '',
       order: moduleOrder,
       isPublished: true,
     });
@@ -132,7 +134,7 @@ const createModule = async (req, res) => {
 const updateModule = async (req, res) => {
   try {
     const { moduleId } = req.params;
-    const { title, description, duration, learningObjectives, order, isPublished } = req.body;
+    const { title, description, duration, learningObjectives, order, isPublished, circularUrl, documentUrl } = req.body;
 
     const existingMod = await Module.findById(moduleId);
     if (!existingMod) {
@@ -148,6 +150,8 @@ const updateModule = async (req, res) => {
     if (learningObjectives !== undefined) existingMod.learningObjectives = learningObjectives;
     if (order !== undefined) existingMod.order = Number(order);
     if (isPublished !== undefined) existingMod.isPublished = Boolean(isPublished);
+    if (circularUrl !== undefined) existingMod.circularUrl = circularUrl.trim();
+    if (documentUrl !== undefined) existingMod.documentUrl = documentUrl.trim();
 
     await existingMod.save();
 
@@ -258,6 +262,7 @@ const createLesson = async (req, res) => {
       videoProvider,
       contentBody,
       documentUrl,
+      circularUrl,
       externalUrl,
       resources,
       isPreview,
@@ -299,6 +304,7 @@ const createLesson = async (req, res) => {
       videoProvider: videoProvider || 'youtube',
       contentBody: contentBody || '',
       documentUrl: documentUrl || '',
+      circularUrl: circularUrl || '',
       externalUrl: externalUrl || '',
       resources: Array.isArray(resources) ? resources : [],
       isPreview: Boolean(isPreview),
@@ -346,6 +352,7 @@ const updateLesson = async (req, res) => {
       'videoProvider',
       'contentBody',
       'documentUrl',
+      'circularUrl',
       'externalUrl',
       'resources',
       'isPreview',

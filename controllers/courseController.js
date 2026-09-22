@@ -23,7 +23,10 @@ const getAllCourses = async (req, res) => {
       ];
     }
 
-    const courses = await Course.find(query).sort({ createdAt: -1 });
+    const courses = await Course.find(query)
+      .select('-isDeleted -deletedAt -__v')
+      .sort({ createdAt: -1 });
+
     return res.status(200).json({
       success: true,
       count: courses.length,
@@ -34,7 +37,6 @@ const getAllCourses = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error retrieving courses',
-      error: error.message,
     });
   }
 };
@@ -45,9 +47,9 @@ const getCourseById = async (req, res) => {
     const { id } = req.params;
     let course;
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      course = await Course.findById(id);
+      course = await Course.findById(id).select('-isDeleted -deletedAt -__v');
     } else {
-      course = await Course.findOne({ slug: id });
+      course = await Course.findOne({ slug: id }).select('-isDeleted -deletedAt -__v');
     }
 
     if (!course) {

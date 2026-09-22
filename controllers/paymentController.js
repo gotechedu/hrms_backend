@@ -75,8 +75,7 @@ const createPaymentOrder = async (req, res) => {
     console.error('Create Payment Order Error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to create payment order',
-      error: error.message,
+      message: 'Failed to create payment order. Please try again.',
     });
   }
 };
@@ -120,26 +119,25 @@ const verifyPaymentSignature = async (req, res) => {
         .createHmac('sha256', keySecret)
         .update(`${razorpay_order_id}|${razorpay_payment_id}`)
         .digest('hex');
-
       isSignatureValid = expectedSignature === razorpay_signature;
     } else {
-      // Dev / Test mode signature fallback
+      // Fallback for mock sandbox verification
       isSignatureValid = true;
     }
 
     if (!isSignatureValid) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid Razorpay payment signature verification failed',
+        message: 'Invalid Razorpay payment signature. Verification failed.',
       });
     }
 
     const cleanEmail = email.toLowerCase().trim();
     const paidAmount = Number(amount || 0);
-    const paymentId = razorpay_payment_id || `pay_mock_${Date.now()}`;
-    const orderId = razorpay_order_id || `order_mock_${Date.now()}`;
+    const paymentId = razorpay_payment_id || `pay_${Date.now()}`;
+    const orderId = razorpay_order_id || `ord_${Date.now()}`;
 
-    // 0. Idempotency Check: Prevent duplicate user/application/enrollment on re-transmitted callbacks
+    // Idempotency check: return cleanly if payment already registered
     const existingApp = await CourseApplication.findOne({
       'paymentDetails.razorpayPaymentId': paymentId,
     });
@@ -147,7 +145,14 @@ const verifyPaymentSignature = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Payment already verified and processed (idempotent)',
-        application: existingApp,
+        receipt: {
+          paymentId,
+          orderId,
+          amount: existingApp.feesAmount,
+          courseTitle: existingApp.courseTitle,
+          studentName: existingApp.studentName,
+          batch: existingApp.batch,
+        },
         portalUrl: process.env.PORTAL_URL || 'https://portal.gotechedu.com',
       });
     }
@@ -239,25 +244,32 @@ const verifyPaymentSignature = async (req, res) => {
 
     // 3. Create or update normalized Enrollment record
     if (finalCourseId) {
-      const enrollment = await Enrollment.findOneAndUpdate(
+      const generatedEnrollmentNumber = `ENR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}${Math.floor(100 + Math.random() * 900)}`;
+
+      await Enrollment.findOneAndUpdate(
         { trainee: userDoc._id, course: finalCourseId },
         {
-          trainee: userDoc._id,
-          course: finalCourseId,
-          batch: targetBatch ? targetBatch._id : null,
-          application: application._id,
-          status: 'Active',
-          enrolledAt: new Date(),
-          progressPercentage: 0,
-          paymentDetails: {
-            orderId,
-            paymentId,
-            amount: paidAmount,
-            paidAt: new Date(),
-            method: 'Razorpay Online',
+          $set: {
+            trainee: userDoc._id,
+            course: finalCourseId,
+            batch: targetBatch ? targetBatch._id : null,
+            application: application._id,
+            status: 'Active',
+            enrolledAt: new Date(),
+            progressPercentage: 0,
+            paymentDetails: {
+              orderId,
+              paymentId,
+              amount: paidAmount,
+              paidAt: new Date(),
+              method: 'Razorpay Online',
+            },
+          },
+          $setOnInsert: {
+            enrollmentNumber: generatedEnrollmentNumber,
           },
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
 
       if (targetBatch) {
@@ -280,44 +292,58 @@ const verifyPaymentSignature = async (req, res) => {
       await Course.findByIdAndUpdate(finalCourseId, { $inc: { enrolledCount: 1 } });
     }
 
-    // 6. Audit Log payment and enrollment
-    await AuditLog.create({
-      actor: userDoc._id,
-      actorName: studentName,
-      actorRole: 'trainee',
-      action: 'PAYMENT_VERIFIED_ENROLLED',
-      entity: 'Enrollment',
-      entityId: userDoc._id.toString(),
-      metadata: { paymentId, orderId, paidAmount, courseTitle, batchName: targetBatch?.name },
-    });
+    // 6. Audit Log payment and enrollment (non-blocking)
+    try {
+      await AuditLog.create({
+        actor: userDoc._id,
+        actorName: studentName,
+        actorRole: 'trainee',
+        action: 'PAYMENT_VERIFIED_ENROLLED',
+        entity: 'Enrollment',
+        entityId: userDoc._id.toString(),
+        metadata: { paymentId, orderId, paidAmount, courseTitle, batchName: targetBatch?.name },
+      });
+    } catch (auditErr) {
+      console.warn('⚠️ [Payment Verification] Non-critical audit log notice:', auditErr.message);
+    }
 
-    // 5. Send automated HTML Tax Invoice Email via Brevo Mail Service
+    // 7. Send automated HTML Tax Invoice Email via Brevo Mail Service (non-blocking)
     const portalUrl = (process.env.PORTAL_URL || 'https://portal.gotechedu.com').replace(/\/+$/, '');
-    await sendPaymentInvoiceEmail({
-      studentName,
-      email: cleanEmail,
-      phone,
-      courseTitle,
-      feesAmount: paidAmount,
-      paymentId,
-      orderId,
-      paidAt: new Date(),
-      batch,
-      portalUrl,
-    });
+    try {
+      await sendPaymentInvoiceEmail({
+        studentName,
+        email: cleanEmail,
+        phone,
+        courseTitle,
+        feesAmount: paidAmount,
+        paymentId,
+        orderId,
+        paidAt: new Date(),
+        batch,
+        portalUrl,
+      });
+    } catch (emailErr) {
+      console.warn('⚠️ [Payment Verification] Non-critical email invoice notice:', emailErr.message);
+    }
 
     return res.status(200).json({
       success: true,
       message: 'Payment verified successfully and invoice sent to your email!',
-      application,
+      receipt: {
+        paymentId,
+        orderId,
+        amount: paidAmount,
+        courseTitle,
+        studentName,
+        batch: application.batch,
+      },
       portalUrl,
     });
   } catch (error) {
-    console.error('Verify Payment Error:', error);
+    console.error('Verify Payment Error:', error.message, error.stack);
     return res.status(500).json({
       success: false,
-      message: 'Server error processing payment verification',
-      error: error.message,
+      message: 'Server error processing payment verification. Please contact support.',
     });
   }
 };

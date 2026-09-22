@@ -32,7 +32,7 @@ const lessonSchema = new mongoose.Schema(
     },
     contentType: {
       type: String,
-      enum: ['video', 'pdf', 'document', 'text', 'external_link', 'live_class'],
+      enum: ['video', 'pdf', 'document', 'text', 'external_link', 'live_class', 'circular'],
       default: 'video',
     },
     videoUrl: {
@@ -51,10 +51,17 @@ const lessonSchema = new mongoose.Schema(
     documentUrl: {
       type: String,
       default: '',
+      trim: true,
+    },
+    circularUrl: {
+      type: String,
+      default: '',
+      trim: true,
     },
     externalUrl: {
       type: String,
       default: '',
+      trim: true,
     },
     resources: [
       {

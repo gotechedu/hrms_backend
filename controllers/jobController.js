@@ -25,7 +25,9 @@ const getAllJobs = async (req, res) => {
       ];
     }
 
-    const jobs = await Job.find(query).sort({ createdAt: -1 });
+    const jobs = await Job.find(query)
+      .select('-isDeleted -deletedAt -__v -notes')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -37,7 +39,6 @@ const getAllJobs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error retrieving job postings',
-      error: error.message,
     });
   }
 };
@@ -48,9 +49,9 @@ const getJobById = async (req, res) => {
     const { id } = req.params;
     let job;
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      job = await Job.findById(id);
+      job = await Job.findById(id).select('-isDeleted -deletedAt -__v -notes');
     } else {
-      job = await Job.findOne({ slug: id });
+      job = await Job.findOne({ slug: id }).select('-isDeleted -deletedAt -__v -notes');
     }
 
     if (!job) {

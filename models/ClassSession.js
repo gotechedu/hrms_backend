@@ -63,6 +63,11 @@ const classSessionSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    circularUrl: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     resources: [
       {
         title: String,

@@ -111,10 +111,27 @@ const authLimiter = rateLimit({
   },
 });
 
+/**
+ * Strict Form Submission Rate Limiter
+ * Specifically prevents automated bots from spamming contact inquiries,
+ * course enrollments, and job applications.
+ */
+const formSubmitLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes window
+  max: 25, // Limit each IP to 25 form submissions per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many submission attempts from this IP. Please try again after 15 minutes.",
+  },
+});
+
 module.exports = {
   helmetSecurity,
   sanitizeNoSQL,
   hppSecurity: hpp(),
   apiLimiter,
   authLimiter,
+  formSubmitLimiter,
 };

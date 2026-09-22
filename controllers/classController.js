@@ -71,6 +71,7 @@ const createClass = async (req, res) => {
       meetingProvider,
       meetingUrl,
       recordingUrl,
+      circularUrl,
       resources,
     } = req.body;
 
@@ -103,6 +104,7 @@ const createClass = async (req, res) => {
       meetingProvider: meetingProvider || batch.meetingProvider || 'Google Meet',
       meetingUrl: meetingUrl || batch.meetingLink || '',
       recordingUrl: recordingUrl || '',
+      circularUrl: circularUrl ? circularUrl.trim() : '',
       resources: Array.isArray(resources) ? resources : [],
       status: 'Scheduled',
     });
@@ -146,6 +148,7 @@ const updateClass = async (req, res) => {
       'meetingProvider',
       'meetingUrl',
       'recordingUrl',
+      'circularUrl',
       'status',
       'resources',
     ];

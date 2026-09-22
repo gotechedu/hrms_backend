@@ -21,7 +21,9 @@ const getAllBlogs = async (req, res) => {
       ];
     }
 
-    const blogs = await Blog.find(query).sort({ createdAt: -1 });
+    const blogs = await Blog.find(query)
+      .select('-isDeleted -deletedAt -__v')
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -33,7 +35,6 @@ const getAllBlogs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error retrieving blogs',
-      error: error.message,
     });
   }
 };
@@ -44,9 +45,9 @@ const getBlogBySlugOrId = async (req, res) => {
     const { slugOrId } = req.params;
     let blog;
     if (slugOrId.match(/^[0-9a-fA-F]{24}$/)) {
-      blog = await Blog.findById(slugOrId);
+      blog = await Blog.findById(slugOrId).select('-isDeleted -deletedAt -__v');
     } else {
-      blog = await Blog.findOne({ slug: slugOrId });
+      blog = await Blog.findOne({ slug: slugOrId }).select('-isDeleted -deletedAt -__v');
     }
 
     if (!blog) {
