@@ -26,19 +26,12 @@ const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
-// 1. Security Headers (Helmet)
-app.use(helmetSecurity);
-
-// 2. HTTP Request Logger (Morgan with User Email / IP & Timing)
-app.use(requestLogger);
-
-// Allowed CORS Origins Whitelist
+// 1. CORS Configuration & Preflight Handling (Must be mounted before Helmet & Loggers)
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5172",
-  "http://localhost:5173",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:3001",
   "http://127.0.0.1:5173",
@@ -48,41 +41,51 @@ const allowedOrigins = [
   "https://portal.gotechedu.com",
   "https://gotechedu.vercel.app",
   "https://hrmsgotechedu.vercel.app",
-  "http://localhost:5173",
 ];
 
-// Core Middleware
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
 
-      // Normalize origin removing trailing slash
-      const cleanOrigin = origin.replace(/\/+$/, "");
+    // Normalize origin removing trailing slash
+    const cleanOrigin = origin.replace(/\/+$/, "");
 
-      // Check if origin matches whitelist or any .vercel.app domain
-      if (
-        allowedOrigins.includes(cleanOrigin) ||
-        cleanOrigin.endsWith(".vercel.app") ||
-        cleanOrigin.includes("localhost") ||
-        cleanOrigin.includes("127.0.0.1")
-      ) {
-        return callback(null, true);
-      }
+    // Check if origin matches whitelist or any .vercel.app domain
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith(".vercel.app") ||
+      cleanOrigin.includes("localhost") ||
+      cleanOrigin.includes("127.0.0.1")
+    ) {
+      return callback(null, true);
+    }
 
-      return callback(null, true); // Fallback allow for dev/preview
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-    ],
-  }),
-);
+    return callback(null, true); // Fallback allow for dev/preview
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Access-Control-Request-Method",
+    "Access-Control-Request-Headers",
+  ],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+// 2. Security Headers (Helmet)
+app.use(helmetSecurity);
+
+// 3. HTTP Request Logger (Morgan with User Email / IP & Timing)
+app.use(requestLogger);
+
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
@@ -244,4 +247,3 @@ if (require.main === module && process.env.NODE_ENV !== "test") {
 
 app.server = server;
 module.exports = app;
-
