@@ -78,7 +78,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
 // 2. Security Headers (Helmet)
 app.use(helmetSecurity);
