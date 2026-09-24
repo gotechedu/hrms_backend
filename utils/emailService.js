@@ -507,9 +507,468 @@ const sendPaymentInvoiceEmail = async ({
   }
 };
 
+/**
+ * 4. Official Quotation Email with Course/Solution Details, UPI Handles & QR Code
+ */
+const sendQuotationEmail = async ({
+  recipientName,
+  recipientEmail,
+  quotationNumber,
+  type = "learning_course",
+  courseTitle = "",
+  solutionTitle = "",
+  courseCategory = "",
+  duration = "",
+  exactPrice = 0,
+  offeredPrice = 0,
+  discount = 0,
+  validUntil,
+  terms = "",
+  notes = "",
+  quotationUrl,
+  qrCodeUrl,
+}) => {
+  try {
+    const formattedExactPrice = new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(exactPrice || 0);
+
+    const formattedOfferedPrice = new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(offeredPrice || 0);
+
+    const formattedSavings = new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(Math.max(0, (exactPrice || 0) - (offeredPrice || 0)));
+
+    const formattedValidDate = validUntil
+      ? new Date(validUntil).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "14 Days from Issue";
+
+    const titleText =
+      type === "learning_course" ? courseTitle || "Professional Training Program" : solutionTitle || "Custom Technical Solution";
+
+    const upiUri = `upi://pay?pa=gotechedu@ybl&pn=GoTechEdu&am=${offeredPrice || 0}&cu=INR&tn=Quote-${quotationNumber}`;
+    const dynamicQr = qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
+
+    const subject = `[Official Quotation] GoTechEdu - ${titleText} (Ref: ${quotationNumber})`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Official Quotation - GoTechEdu</title>
+        <style>
+          body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1120; margin: 0; padding: 20px; color: #1e293b; }
+          .wrapper { max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid #e2e8f0; }
+          .header { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 36px 28px; text-align: center; color: #ffffff; }
+          .header h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+          .header p { margin: 8px 0 0 0; opacity: 0.9; font-size: 14px; color: #93c5fd; }
+          .badge { display: inline-block; background: #2563eb; color: #ffffff; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-top: 14px; letter-spacing: 0.5px; }
+          .content { padding: 36px 30px; background: #ffffff; }
+          .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+          .lead { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 24px; }
+          
+          .quote-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 22px; margin-bottom: 24px; }
+          .quote-header { border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+          .row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
+          .row .label { color: #64748b; font-weight: 600; }
+          .row .value { color: #0f172a; font-weight: 700; text-align: right; }
+          
+          .price-block { background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 14px; padding: 18px; margin: 18px 0; }
+          .price-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+          .old-price { font-size: 14px; color: #64748b; text-decoration: line-through; }
+          .final-price { font-size: 24px; font-weight: 800; color: #1d4ed8; }
+          .savings-tag { display: inline-block; background: #10b981; color: #ffffff; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+
+          .upi-box { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 2px solid #a7f3d0; border-radius: 16px; padding: 24px; margin: 24px 0; text-align: center; }
+          .upi-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #065f46; letter-spacing: 0.5px; margin-bottom: 12px; }
+          .upi-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+          .upi-pill { background: #ffffff; border: 1px solid #6ee7b7; border-radius: 8px; padding: 8px 14px; font-family: monospace; font-size: 14px; font-weight: 700; color: #047857; display: inline-block; margin: 3px; }
+          .qr-img { width: 180px; height: 180px; border-radius: 12px; border: 4px solid #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 12px auto; display: block; }
+          
+          .btn-wrap { text-align: center; margin: 28px 0 16px 0; }
+          .btn { display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff !important; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 34px; border-radius: 12px; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+          
+          .steps-box { background: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 12px; color: #92400e; line-height: 1.6; }
+          .footer { background: #f1f5f9; padding: 22px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="header">
+            <h1>GoTechEdu</h1>
+            <p>Official Commercial & Educational Quotation</p>
+            <span class="badge">Quotation #${quotationNumber}</span>
+          </div>
+
+          <div class="content">
+            <div class="greeting">Dear ${recipientName},</div>
+            <p class="lead">
+              Thank you for consulting with <strong>GoTechEdu</strong>. Based on your requirements, we are pleased to present this custom official quotation for:
+            </p>
+
+            <div class="quote-card">
+              <div class="quote-header">
+                <span>Reference: ${quotationNumber}</span>
+                <span>Valid Until: ${formattedValidDate}</span>
+              </div>
+
+              <div class="row">
+                <span class="label">Program / Scope:</span>
+                <span class="value">${titleText}</span>
+              </div>
+              ${
+                courseCategory
+                  ? `<div class="row"><span class="label">Domain / Category:</span><span class="value">${courseCategory}</span></div>`
+                  : ""
+              }
+              ${
+                duration
+                  ? `<div class="row"><span class="label">Estimated Duration:</span><span class="value">${duration}</span></div>`
+                  : ""
+              }
+
+              <div class="price-block">
+                <div class="price-row">
+                  <span class="label">Standard Catalog Fee:</span>
+                  <span class="old-price">${formattedExactPrice}</span>
+                </div>
+                <div class="price-row">
+                  <span class="label" style="font-weight: 800; color: #1e3a8a;">Special Quoted Rate:</span>
+                  <span class="final-price">${formattedOfferedPrice}</span>
+                </div>
+                ${
+                  exactPrice > offeredPrice
+                    ? `<div style="text-align: right;"><span class="savings-tag">You Save ${formattedSavings}</span></div>`
+                    : ""
+                }
+              </div>
+
+              ${
+                notes
+                  ? `<div style="font-size: 12px; color: #475569; margin-top: 10px; font-style: italic;">Note: ${notes}</div>`
+                  : ""
+              }
+            </div>
+
+            <!-- UPI Payment Details & QR Code -->
+            <div class="upi-box">
+              <div class="upi-title">⚡ Official Direct UPI Payment Gateways</div>
+              <p style="font-size: 12px; color: #065f46; margin: 0 0 12px 0;">
+                You can complete payment using any UPI App (Google Pay, PhonePe, Paytm, BHIM) to any of our official handles:
+              </p>
+              
+              <div>
+                <span class="upi-pill">gotechedu@ybl (Primary)</span>
+                <span class="upi-pill">gotechedu@ibl</span>
+                <span class="upi-pill">gotechedu@axl</span>
+              </div>
+
+              <img src="${dynamicQr}" alt="GoTechEdu UPI QR Code" class="qr-img" />
+              <p style="font-size: 11px; color: #047857; margin: 6px 0 0 0; font-weight: 600;">
+                Scan with any UPI app to pay exact amount: ${formattedOfferedPrice}
+              </p>
+            </div>
+
+            <div class="steps-box">
+              <strong>Registration Next Steps:</strong><br />
+              1. Transfer the quoted fee to any of our official UPI handles or scan the QR above.<br />
+              2. Keep your 12-digit UPI UTR / Transaction Reference ID handy.<br />
+              3. Click the link below to confirm your candidate details and submit your payment reference.<br />
+              4. Once verified by our administration team, your access will be activated and login credentials delivered to your inbox.
+            </div>
+
+            <div class="btn-wrap">
+              <a href="${quotationUrl}" class="btn" target="_blank">
+                Accept Quotation & Complete Registration →
+              </a>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p style="margin: 0 0 4px 0;"><strong>GoTechEdu Corporation</strong> • Enterprise & Academia Solutions</p>
+            <p style="margin: 0;">For queries, reply to this email or reach us at <a href="mailto:support@gotechedu.com" style="color: #2563eb;">support@gotechedu.com</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await sendEmailViaBrevo({
+      to: recipientEmail,
+      name: recipientName,
+      subject,
+      htmlContent,
+    });
+  } catch (err) {
+    console.error("sendQuotationEmail Error:", err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * 5. Student Enrollment Verified & Account Activation Email with Credentials
+ */
+const sendEnrollmentVerifiedEmail = async ({
+  studentName,
+  email,
+  courseTitle,
+  temporaryPassword,
+  portalUrl,
+  batch = "Current Cohort 2026",
+}) => {
+  try {
+    const resolvedPortalUrl = (
+      portalUrl ||
+      process.env.PORTAL_URL ||
+      "https://portal.gotechedu.com"
+    ).replace(/\/+$/, "");
+
+    const subject = `[Verified] Your Enrollment is Confirmed - Welcome to ${courseTitle}!`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Enrollment Verified - GoTechEdu</title>
+        <style>
+          body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1120; margin: 0; padding: 20px; color: #1e293b; }
+          .wrapper { max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid #e2e8f0; }
+          .header { background: linear-gradient(135deg, #065f46 0%, #059669 100%); padding: 34px 24px; text-align: center; color: #ffffff; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+          .header p { margin: 6px 0 0 0; opacity: 0.9; font-size: 13px; color: #d1fae5; }
+          .badge { display: inline-block; background: #ffffff; color: #065f46; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-top: 12px; }
+          .content { padding: 32px 28px; background: #ffffff; }
+          .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+          .lead { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 22px; }
+          
+          .cred-box { background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 14px; padding: 22px; margin: 22px 0; }
+          .cred-title { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #1e40af; margin-bottom: 12px; }
+          .cred-item { margin-bottom: 10px; font-size: 14px; }
+          .cred-label { color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px; }
+          .cred-value { font-family: 'Consolas', monospace; font-size: 15px; font-weight: 700; color: #1e3a8a; background: #ffffff; padding: 8px 12px; border-radius: 8px; border: 1px solid #dbeafe; display: inline-block; }
+          
+          .btn-wrap { text-align: center; margin: 28px 0 16px 0; }
+          .btn { display: inline-block; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff !important; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 34px; border-radius: 12px; box-shadow: 0 4px 14px rgba(5,150,105,0.35); }
+          .footer { background: #f1f5f9; padding: 20px; text-align: center; font-size: 11px; color: #64748b; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="header">
+            <h1>GoTechEdu Learning Hub</h1>
+            <p>Enrollment & Identity Verification</p>
+            <span class="badge">Verified & Active ✓</span>
+          </div>
+
+          <div class="content">
+            <div class="greeting">Welcome Aboard, ${studentName}!</div>
+            <p class="lead">
+              Great news! Your payment and registration for <strong>${courseTitle}</strong> (${batch}) have been officially verified. Your student workstation is now fully active.
+            </p>
+
+            <div class="cred-box">
+              <div class="cred-title">🔒 Student Workstation Login Credentials</div>
+              <div class="cred-item">
+                <span class="cred-label">Learning Portal URL</span>
+                <span class="cred-value">${resolvedPortalUrl}</span>
+              </div>
+              <div class="cred-item">
+                <span class="cred-label">Login Email</span>
+                <span class="cred-value">${email}</span>
+              </div>
+              ${
+                temporaryPassword
+                  ? `<div class="cred-item">
+                      <span class="cred-label">Initial Password</span>
+                      <span class="cred-value">${temporaryPassword}</span>
+                    </div>`
+                  : `<div class="cred-item">
+                      <span class="cred-label">Password</span>
+                      <span class="cred-value" style="font-size: 13px;">Use your registered account password</span>
+                    </div>`
+              }
+            </div>
+
+            <div class="btn-wrap">
+              <a href="${resolvedPortalUrl}" class="btn" target="_blank">
+                Sign In to Student Portal →
+              </a>
+            </div>
+
+            <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 18px;">
+              For security, you may change your password anytime under your Account Settings in the portal.
+            </p>
+          </div>
+
+          <div class="footer">
+            &copy; 2026 GoTechEdu Academy • Questions? Contact support@gotechedu.com
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await sendEmailViaBrevo({
+      to: email,
+      name: studentName,
+      subject,
+      htmlContent,
+    });
+  } catch (err) {
+    console.error("sendEnrollmentVerifiedEmail Error:", err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * 6. Student Manual Course Enrollment Welcome Email
+ */
+const sendManualEnrollmentEmail = async ({
+  studentName,
+  email,
+  courseTitle,
+  batch = "Current Cohort 2026",
+  temporaryPassword,
+  portalUrl,
+}) => {
+  try {
+    const resolvedPortalUrl = (
+      portalUrl ||
+      process.env.PORTAL_URL ||
+      "https://portal.gotechedu.com"
+    ).replace(/\/+$/, "");
+
+    const subject = `You are Enrolled in ${courseTitle} - GoTechEdu Learning Hub`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Course Enrollment - GoTechEdu</title>
+        <style>
+          body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1120; margin: 0; padding: 20px; color: #1e293b; }
+          .wrapper { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.25); border: 1px solid #e2e8f0; }
+          .header { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); padding: 32px 24px; text-align: center; color: #ffffff; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+          .content { padding: 32px 28px; background: #ffffff; }
+          .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+          .lead { font-size: 14px; color: #475569; line-height: 1.6; margin-bottom: 20px; }
+          
+          .details-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 20px; }
+          .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+          .row .label { color: #64748b; font-weight: 600; }
+          .row .value { color: #0f172a; font-weight: 700; }
+
+          .cred-box { background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 14px; padding: 20px; margin: 20px 0; }
+          .cred-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #1e40af; margin-bottom: 10px; }
+          .cred-item { margin-bottom: 8px; font-size: 14px; }
+          .cred-label { color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; display: block; margin-bottom: 2px; }
+          .cred-value { font-family: 'Consolas', monospace; font-size: 14px; font-weight: 700; color: #1e3a8a; background: #ffffff; padding: 6px 12px; border-radius: 6px; border: 1px solid #dbeafe; display: inline-block; }
+
+          .btn-wrap { text-align: center; margin: 26px 0 16px 0; }
+          .btn { display: inline-block; background: #2563eb; color: #ffffff !important; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; }
+          .footer { background: #f1f5f9; padding: 18px; text-align: center; font-size: 11px; color: #64748b; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="header">
+            <h1>GoTechEdu Learning Hub</h1>
+            <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 13px;">Official Course Enrollment</p>
+          </div>
+
+          <div class="content">
+            <div class="greeting">Hello ${studentName},</div>
+            <p class="lead">
+              You have been enrolled in <strong>${courseTitle}</strong>. You can now access all learning curriculum, interactive labs, and batch schedules.
+            </p>
+
+            <div class="details-card">
+              <div class="row">
+                <span class="label">Course Program:</span>
+                <span class="value">${courseTitle}</span>
+              </div>
+              <div class="row">
+                <span class="label">Assigned Cohort:</span>
+                <span class="value">${batch}</span>
+              </div>
+            </div>
+
+            <div class="cred-box">
+              <div class="cred-title">Workstation Access Credentials</div>
+              <div class="cred-item">
+                <span class="cred-label">Portal Gateway</span>
+                <span class="cred-value">${resolvedPortalUrl}</span>
+              </div>
+              <div class="cred-item">
+                <span class="cred-label">Registered Email</span>
+                <span class="cred-value">${email}</span>
+              </div>
+              ${
+                temporaryPassword
+                  ? `<div class="cred-item">
+                      <span class="cred-label">Temporary Access Password</span>
+                      <span class="cred-value">${temporaryPassword}</span>
+                    </div>`
+                  : `<div class="cred-item">
+                      <span class="cred-label">Password</span>
+                      <span class="cred-value" style="font-size: 13px;">Use your existing account password</span>
+                    </div>`
+              }
+            </div>
+
+            <div class="btn-wrap">
+              <a href="${resolvedPortalUrl}" class="btn" target="_blank">
+                Access Course Dashboard →
+              </a>
+            </div>
+          </div>
+
+          <div class="footer">
+            &copy; 2026 GoTechEdu Academy • Gurugram, India
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await sendEmailViaBrevo({
+      to: email,
+      name: studentName,
+      subject,
+      htmlContent,
+    });
+  } catch (err) {
+    console.error("sendManualEnrollmentEmail Error:", err);
+    return { success: false, error: err.message };
+  }
+};
+
 module.exports = {
   sendEmailViaBrevo,
   sendEmployeeWelcomeEmail,
   sendPasswordResetOtpEmail,
   sendPaymentInvoiceEmail,
+  sendQuotationEmail,
+  sendEnrollmentVerifiedEmail,
+  sendManualEnrollmentEmail,
 };
+

@@ -69,7 +69,10 @@ const sanitizeNoSQL = (req, res, next) => {
       }
     }
   } catch (error) {
-    console.warn("⚠️ [Security] Failed to sanitize request payload:", error.message);
+    console.warn(
+      "⚠️ [Security] Failed to sanitize request payload:",
+      error.message,
+    );
   }
 
   next();
@@ -80,13 +83,14 @@ const sanitizeNoSQL = (req, res, next) => {
  * Guards the server against high-frequency scraping and DoS bursts
  */
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes window
-  max: 600, // Limit each IP to 600 requests per windowMs
+  windowMs: 5 * 60 * 1000, // 5 minutes window
+  max: 1000, // Limit each IP to 600 requests per windowMs
   standardHeaders: true, // Return standard RateLimit headers
   legacyHeaders: false, // Disable X-RateLimit headers
   message: {
     success: false,
-    message: "Too many requests from this IP. Please try again after 15 minutes.",
+    message:
+      "Too many requests from this IP. Please try again after 5 minutes.",
   },
   skip: (req) => {
     // Exclude health check and root endpoints from rate limits
@@ -107,7 +111,7 @@ const authLimiter = rateLimit({
   message: {
     success: false,
     message:
-      "Too many login/registration attempts from this IP. Please try again after 15 minutes.",
+      "Too many login/registration attempts from this IP. Please try again after 3 minutes.",
   },
 });
 
@@ -117,13 +121,14 @@ const authLimiter = rateLimit({
  * course enrollments, and job applications.
  */
 const formSubmitLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes window
-  max: 25, // Limit each IP to 25 form submissions per 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes window
+  max: 280, // Limit each IP to 80 form submissions per 5 minutes
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many submission attempts from this IP. Please try again after 15 minutes.",
+    message:
+      "Too many submission attempts from this IP. Please try again after 5 minutes.",
   },
 });
 

@@ -52,6 +52,12 @@ const login = async (req, res) => {
 
     // Check if user is active
     if (user.status !== "active") {
+      if (user.status === "pending") {
+        return res.status(403).json({
+          success: false,
+          message: "Your registration is currently pending verification. You will receive an email once your enrollment has been approved.",
+        });
+      }
       return res.status(403).json({
         success: false,
         message: `Account is ${user.status}. Please reach out to your administrator.`,

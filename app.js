@@ -102,6 +102,7 @@ app.use("/api/auth/reset-password", authLimiter);
 app.use("/api/contacts", formSubmitLimiter);
 app.use("/api/course-applications", formSubmitLimiter);
 app.use("/api/job-applications", formSubmitLimiter);
+app.use("/api/quotations/public", formSubmitLimiter);
 
 // Health Check & Root API Information
 app.get("/", (req, res) => {
@@ -161,6 +162,7 @@ app.use("/api/projects", require("./routes/projectRoute"));
 app.use("/api/tasks", require("./routes/taskRoute"));
 app.use("/api/settings", require("./routes/settingsRoute"));
 app.use("/api/contacts", require("./routes/contactRoute"));
+app.use("/api/quotations", require("./routes/quotationRoute"));
 app.use("/api/discussions", require("./routes/discussionRoute"));
 app.use("/api/chat", require("./routes/chatRoute"));
 app.use("/api/recycle-bin", require("./routes/recycleBinRoute"));

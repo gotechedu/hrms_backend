@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 const { CourseApplication } = require('../models/CourseApplication');
 const { Course } = require('../models/Course');
 const { User } = require('../models/User');
+const { Enrollment } = require('../models/Enrollment');
+const {
+  sendPaymentInvoiceEmail,
+  sendManualEnrollmentEmail,
+} = require('../utils/emailService');
 
 // POST /api/course-applications (Submit or Add Student Candidate)
 const submitCourseApplication = async (req, res) => {
@@ -37,15 +42,18 @@ const submitCourseApplication = async (req, res) => {
     // Auto-link or Create User account
     const rawPassword = req.body.password || `Student@${Math.floor(1000 + Math.random() * 9000)}`;
     let userDoc = await User.findOne({ email: cleanEmail });
+    let isNewUser = false;
     if (!userDoc) {
+      isNewUser = true;
       userDoc = new User({
         name: studentName,
         email: cleanEmail,
         password: rawPassword,
-        role: 'employee',
+        role: 'trainee',
         phone: phone || '',
         collegeOrCompany: collegeOrCompany || '',
         qualification: qualification || '',
+        status: 'active',
       });
       await userDoc.save();
     } else if (req.body.password) {
@@ -98,10 +106,34 @@ const submitCourseApplication = async (req, res) => {
       await Course.findByIdAndUpdate(courseId, { $inc: { enrolledCount: 1 } });
     }
 
+    // Auto-create Enrollment document if enrolled or paid
+    if (courseId && (application.status === 'Enrolled' || application.feesStatus === 'Paid')) {
+      try {
+        let enrollmentDoc = await Enrollment.findOne({ trainee: userDoc._id, course: courseId });
+        if (!enrollmentDoc) {
+          enrollmentDoc = new Enrollment({
+            trainee: userDoc._id,
+            course: courseId,
+            application: application._id,
+            status: 'Active',
+            paymentDetails: {
+              orderId: application.paymentDetails?.razorpayOrderId || `ORD-${Date.now()}`,
+              paymentId: application.paymentDetails?.razorpayPaymentId || `MANUAL-${Date.now()}`,
+              amount: application.feesAmount || 0,
+              paidAt: new Date(),
+              method: application.paymentDetails?.paymentMethod || 'Manual Enrollment',
+            },
+          });
+          await enrollmentDoc.save();
+        }
+      } catch (enrErr) {
+        console.warn('Enrollment creation notice:', enrErr.message);
+      }
+    }
+
     // Try sending Nodemailer invoice email if feesStatus is Paid
     if (application.feesStatus === 'Paid') {
       try {
-        const { sendPaymentInvoiceEmail } = require('../utils/emailService');
         await sendPaymentInvoiceEmail({
           studentName: application.studentName,
           email: application.email,
@@ -115,6 +147,20 @@ const submitCourseApplication = async (req, res) => {
       } catch (emailErr) {
         console.warn('Invoice email notice:', emailErr.message);
       }
+    }
+
+    // Automatically send credentials welcome email to student upon manual enrollment
+    try {
+      await sendManualEnrollmentEmail({
+        studentName: application.studentName,
+        email: application.email,
+        courseTitle: application.courseTitle,
+        batch: application.batch || 'Current Cohort 2026',
+        temporaryPassword: isNewUser ? rawPassword : req.body.password || null,
+        portalUrl: process.env.PORTAL_URL || 'https://portal.gotechedu.com',
+      });
+    } catch (manualEmailErr) {
+      console.warn('Manual enrollment email notice:', manualEmailErr.message);
     }
 
     return res.status(201).json({
